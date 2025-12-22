@@ -13,6 +13,8 @@ interface Task {
     description: string | null
     status: 'pending' | 'completed'
     due_date: string | null
+    start_time: string | null
+    end_time: string | null
     created_at: string
 }
 
@@ -69,7 +71,7 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
         const newDateKey = over.id.toString().replace('day-', '')
         const taskId = active.id.toString()
 
-        // Update task date
+        // Update task date (time is preserved automatically)
         await updateTaskDate(taskId, newDateKey)
         window.location.reload() // Refresh to show updated task
     }
@@ -185,6 +187,7 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                             <TaskChip
                                 title={activeTask.title}
                                 status={activeTask.status}
+                                startTime={activeTask.start_time}
                             />
                         </div>
                     )}
@@ -252,6 +255,7 @@ function DraggableTask({ task }: { task: Task }) {
             <TaskChip
                 title={task.title}
                 status={task.status}
+                startTime={task.start_time}
             />
         </div>
     )

@@ -13,6 +13,9 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
     const [description, setDescription] = useState('')
     const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0])
     const [status, setStatus] = useState<'pending' | 'completed'>('pending')
+    const [showTimeInputs, setShowTimeInputs] = useState(false)
+    const [startTime, setStartTime] = useState('')
+    const [endTime, setEndTime] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     if (!isOpen) return null
@@ -21,12 +24,25 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
         e.preventDefault()
         if (!title.trim()) return
 
+        // Validate time range
+        if (showTimeInputs && startTime && endTime && endTime < startTime) {
+            alert('End time must be after start time')
+            return
+        }
+
         setIsSubmitting(true)
         const formData = new FormData()
         formData.append('title', title)
         formData.append('description', description)
         formData.append('due_date', dueDate)
         formData.append('status', status)
+
+        if (showTimeInputs && startTime) {
+            formData.append('start_time', startTime)
+            if (endTime) {
+                formData.append('end_time', endTime)
+            }
+        }
 
         const result = await createTaskWithDate(formData)
 
@@ -39,6 +55,9 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
             setDescription('')
             setDueDate(new Date().toISOString().split('T')[0])
             setStatus('pending')
+            setShowTimeInputs(false)
+            setStartTime('')
+            setEndTime('')
             setIsSubmitting(false)
             onClose()
             window.location.reload()
@@ -117,6 +136,54 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                             onChange={(e) => setDueDate(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         />
+                    </div>
+
+                    {/* Time Section */}
+                    <div className="border-t border-gray-200 pt-4">
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={showTimeInputs}
+                                onChange={(e) => {
+                                    setShowTimeInputs(e.target.checked)
+                                    if (!e.target.checked) {
+                                        setStartTime('')
+                                        setEndTime('')
+                                    }
+                                }}
+                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            />
+                            Add time
+                        </label>
+
+                        {showTimeInputs && (
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label htmlFor="start_time" className="block text-xs font-medium text-gray-600 mb-1">
+                                        Start time
+                                    </label>
+                                    <input
+                                        id="start_time"
+                                        type="time"
+                                        value={startTime}
+                                        onChange={(e) => setStartTime(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="end_time" className="block text-xs font-medium text-gray-600 mb-1">
+                                        End time (optional)
+                                    </label>
+                                    <input
+                                        id="end_time"
+                                        type="time"
+                                        value={endTime}
+                                        onChange={(e) => setEndTime(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Status */}

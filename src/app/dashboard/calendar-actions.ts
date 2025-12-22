@@ -26,12 +26,21 @@ export async function createTaskWithDate(formData: FormData) {
     const description = formData.get('description') as string
     const due_date = formData.get('due_date') as string
     const status = (formData.get('status') as 'pending' | 'completed') || 'pending'
+    const start_time = (formData.get('start_time') as string) || null
+    const end_time = (formData.get('end_time') as string) || null
+
+    // Validate time range
+    if (start_time && end_time && end_time < start_time) {
+        return { error: 'End time must be after start time' }
+    }
 
     const { error } = await supabase.from('tasks').insert({
         title,
         description,
         status,
         due_date,
+        start_time,
+        end_time,
         user_id: user.id,
     })
 

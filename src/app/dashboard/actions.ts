@@ -79,21 +79,29 @@ export async function updateTask(id: string, formData: FormData) {
         redirect('/login')
     }
 
-    // Update/Delete are typically allowed for free users on their own tasks.
-    // Previous gating was strict. Now we should likely relax it or keep it?
-    // Prompt says: "Free users can create up to 5 tasks". It implies they can use the app.
-    // So we REMOVE the strict subscription check for Update/Delete too.
+    const title = formData.get('title') as string
+    const description = formData.get('description') as string
+    const status = formData.get('status') as 'pending' | 'completed'
+    const start_time = (formData.get('start_time') as string) || null
+    const end_time = (formData.get('end_time') as string) || null
 
-    // Authorization (RLS) handles ownership.
+    // Validate time range
+    if (start_time && end_time && end_time < start_time) {
+        redirect(`/dashboard/${id}/edit?error=End time must be after start time`)
+        return
+    }
 
     const { error } = await supabase
         .from('tasks')
         .update({
-            title: formData.get('title') as string,
-            description: formData.get('description') as string,
-            status: formData.get('status') as 'pending' | 'completed',
+            title,
+            description,
+            status,
+            start_time,
+            end_time,
         })
         .eq('id', id)
+        .eq('user_id', user.id)
 
     if (error) {
         redirect(`/dashboard/${id}/edit?error=Could not update task`)
