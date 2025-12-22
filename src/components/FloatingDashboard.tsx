@@ -8,9 +8,10 @@ interface FloatingDashboardProps {
     count: number
     limit: number
     isPro?: boolean
+    onOpenCreateModal?: () => void
 }
 
-export default function FloatingDashboard({ count, limit, isPro = false }: FloatingDashboardProps) {
+export default function FloatingDashboard({ count, limit, isPro = false, onOpenCreateModal }: FloatingDashboardProps) {
     const [isOpen, setIsOpen] = useState(false)
     const router = useRouter()
     const drawerRef = useRef<HTMLDivElement>(null)
@@ -46,6 +47,13 @@ export default function FloatingDashboard({ count, limit, isPro = false }: Float
     const handleBackdropClick = (e: React.MouseEvent) => {
         if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
             setIsOpen(false)
+        }
+    }
+
+    const handleNewTaskClick = () => {
+        setIsOpen(false)
+        if (onOpenCreateModal) {
+            onOpenCreateModal()
         }
     }
 
@@ -154,9 +162,8 @@ export default function FloatingDashboard({ count, limit, isPro = false }: Float
                         <div className="space-y-3 pt-4 border-t border-gray-100">
                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Actions</span>
 
-                            <Link
-                                href="/dashboard/new"
-                                onClick={() => setIsOpen(false)}
+                            <button
+                                onClick={handleNewTaskClick}
                                 className={`flex items-center w-full px-4 py-3 rounded-xl shadow-sm text-sm font-medium transition-all ${!isPro && count >= limit
                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed grayscale'
                                     : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-md'
@@ -166,7 +173,7 @@ export default function FloatingDashboard({ count, limit, isPro = false }: Float
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
                                 New Task
-                            </Link>
+                            </button>
 
                             <Link
                                 href="/dashboard"

@@ -19,6 +19,7 @@ export interface Database {
           created_at: string
           updated_at: string
           is_sample: boolean
+          due_date: string | null
         }
         Insert: {
           id?: string
@@ -29,6 +30,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
           is_sample?: boolean
+          due_date?: string | null
         }
         Update: {
           id?: string
@@ -39,6 +41,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
           is_sample?: boolean
+          due_date?: string | null
         }
         Relationships: []
       }
