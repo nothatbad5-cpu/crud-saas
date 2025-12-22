@@ -5,6 +5,7 @@ import TaskTable from '@/components/TaskTable'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import ViewToggle from '@/components/ViewToggle'
 import CreateTaskModal from '@/components/modals/CreateTaskModal'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 interface DashboardClientProps {
     tasks: any[]
@@ -15,6 +16,20 @@ interface DashboardClientProps {
 export default function DashboardClient({ tasks, stats, error }: DashboardClientProps) {
     const [view, setView] = useState<'table' | 'calendar'>('table')
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+
+    // Keyboard shortcuts
+    useKeyboardShortcuts([
+        {
+            key: 'n',
+            handler: () => setIsCreateModalOpen(true),
+            description: 'New Task'
+        },
+        {
+            key: 't',
+            handler: () => setView(v => v === 'table' ? 'calendar' : 'table'),
+            description: 'Toggle View'
+        }
+    ])
 
     return (
         <div>
@@ -101,6 +116,11 @@ export default function DashboardClient({ tasks, stats, error }: DashboardClient
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
             />
+
+            {/* Keyboard Shortcuts Hint */}
+            <div className="fixed bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2 text-xs text-gray-600 border border-gray-200">
+                <span className="font-semibold">Shortcuts:</span> <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded">N</kbd> New Task · <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded">T</kbd> Toggle View
+            </div>
         </div>
     )
 }
