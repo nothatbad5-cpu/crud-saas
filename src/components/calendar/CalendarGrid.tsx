@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, useDroppable, useDraggable } from '@dnd-kit/core'
 import { getMonthDays, getMonthName, getPreviousMonth, getNextMonth, groupTasksByDate } from '@/lib/calendar-utils'
+import { sortTasksByDueAt, formatTimeBadge, extractTimeFromDueAt } from '@/lib/datetime-utils'
 import TaskChip from './TaskChip'
 import DayPanel from './DayPanel'
 import { updateTaskDate } from '@/app/dashboard/calendar-actions'
@@ -13,6 +14,7 @@ interface Task {
     description: string | null
     status: 'pending' | 'completed'
     due_date: string | null
+    due_at: string | null
     start_time: string | null
     end_time: string | null
     created_at: string
@@ -39,7 +41,9 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
     }
 
     const handleNextMonth = () => {
+        console.log('handleNextMonth called', { currentYear, currentMonth })
         const { year, month } = getNextMonth(currentYear, currentMonth)
+        console.log('New month calculated:', { year, month })
         setCurrentYear(year)
         setCurrentMonth(month)
     }
@@ -71,13 +75,24 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
         const newDateKey = over.id.toString().replace('day-', '')
         const taskId = active.id.toString()
 
-        // Update task date (time is preserved automatically)
-        await updateTaskDate(taskId, newDateKey)
+        // Find the task to preserve its time
+        const task = tasks.find(t => t.id === taskId)
+        if (task) {
+            const { extractTimeFromDueAt, isAllDayTask } = await import('@/lib/datetime-utils')
+            const currentTime = task.due_at ? extractTimeFromDueAt(task.due_at) : (task.start_time || null)
+            const isAllDay = (task.due_at ? isAllDayTask(task.due_at) : !task.start_time) || false
+
+            // Update task date (preserve time if it exists)
+            await updateTaskDate(taskId, newDateKey, currentTime, isAllDay)
+        }
         window.location.reload() // Refresh to show updated task
     }
 
     const selectedDateTasks = selectedDate
-        ? (tasksByDate.get(selectedDate.toISOString().split('T')[0]) || [])
+        ? (tasksByDate.get(selectedDate.toISOString().split('T')[0]) || []).map(task => ({
+            ...task,
+            due_at: task.due_at || null
+        }))
         : []
 
     return (
@@ -103,6 +118,7 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                         </div>
                         <div className="flex items-center gap-2">
                             <button
+                                type="button"
                                 onClick={handlePrevMonth}
                                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                                 aria-label="Previous month"
@@ -112,6 +128,7 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                                 </svg>
                             </button>
                             <button
+                                type="button"
                                 onClick={handleNextMonth}
                                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                                 aria-label="Next month"
@@ -138,8 +155,10 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                         <div className="grid grid-cols-7 gap-2">
                             {days.map((day, index) => {
                                 const dayTasks = tasksByDate.get(day.dateKey) || []
-                                const visibleTasks = dayTasks.slice(0, 2)
-                                const remainingCount = dayTasks.length - 2
+                                // Sort: timed tasks first (by time), then all-day
+                                const sortedDayTasks = sortTasksByDueAt(dayTasks)
+                                const visibleTasks = sortedDayTasks.slice(0, 2)
+                                const remainingCount = sortedDayTasks.length - 2
 
                                 return (
                                     <DroppableDay
@@ -164,9 +183,20 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
 
                                         {/* Task chips */}
                                         <div className="space-y-1">
-                                            {visibleTasks.map(task => (
-                                                <DraggableTask key={task.id} task={task} />
-                                            ))}
+                                            {visibleTasks.map(task => {
+                                                // Get time from due_at or fallback to start_time
+                                                const taskTime = task.due_at
+                                                    ? extractTimeFromDueAt(task.due_at)
+                                                    : task.start_time
+                                                return (
+                                                    <DraggableTask
+                                                        key={task.id}
+                                                        task={task}
+                                                        time={taskTime}
+                                                        dueAt={task.due_at}
+                                                    />
+                                                )
+                                            })}
                                             {remainingCount > 0 && (
                                                 <div className="text-xs text-gray-500 font-medium px-2">
                                                     +{remainingCount} more
@@ -187,17 +217,21 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                             <TaskChip
                                 title={activeTask.title}
                                 status={activeTask.status}
-                                startTime={activeTask.start_time}
+                                startTime={activeTask.due_at ? extractTimeFromDueAt(activeTask.due_at) : activeTask.start_time}
+                                dueAt={activeTask.due_at}
                             />
                         </div>
                     )}
                 </DragOverlay>
             </DndContext>
 
-            {/* Day Panel */}
+            {/* Day Panel with Timeline View */}
             <DayPanel
                 selectedDate={selectedDate}
-                tasks={selectedDateTasks}
+                tasks={selectedDateTasks.map(task => ({
+                    ...task,
+                    due_at: task.due_at || null
+                }))}
                 onClose={() => setSelectedDate(null)}
             />
         </>
@@ -240,7 +274,7 @@ function DroppableDay({
 }
 
 // Draggable Task Component
-function DraggableTask({ task }: { task: Task }) {
+function DraggableTask({ task, time, dueAt }: { task: Task; time?: string | null; dueAt?: string | null }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: task.id
     })
@@ -255,7 +289,8 @@ function DraggableTask({ task }: { task: Task }) {
             <TaskChip
                 title={task.title}
                 status={task.status}
-                startTime={task.start_time}
+                startTime={time || task.start_time}
+                dueAt={dueAt || task.due_at}
             />
         </div>
     )

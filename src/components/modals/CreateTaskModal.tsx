@@ -13,10 +13,14 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
     const [description, setDescription] = useState('')
     const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0])
     const [status, setStatus] = useState<'pending' | 'completed'>('pending')
+    const [allDay, setAllDay] = useState(true)
+    const [dueTime, setDueTime] = useState('09:00')
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    
+    // Legacy support: keep start_time/end_time for backwards compatibility
     const [showTimeInputs, setShowTimeInputs] = useState(false)
     const [startTime, setStartTime] = useState('')
     const [endTime, setEndTime] = useState('')
-    const [isSubmitting, setIsSubmitting] = useState(false)
 
     if (!isOpen) return null
 
@@ -24,7 +28,13 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
         e.preventDefault()
         if (!title.trim()) return
 
-        // Validate time range
+        // Validate time format if provided
+        if (!allDay && dueTime && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(dueTime)) {
+            alert('Invalid time format. Use HH:mm (e.g., 09:30)')
+            return
+        }
+
+        // Validate legacy time range
         if (showTimeInputs && startTime && endTime && endTime < startTime) {
             alert('End time must be after start time')
             return
@@ -34,9 +44,16 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
         const formData = new FormData()
         formData.append('title', title)
         formData.append('description', description)
-        formData.append('due_date', dueDate)
+        formData.append('dueDate', dueDate)
         formData.append('status', status)
+        formData.append('allDay', allDay ? 'true' : 'false')
 
+        // New primary fields
+        if (!allDay && dueTime) {
+            formData.append('dueTime', dueTime)
+        }
+
+        // Legacy support: keep start_time/end_time for backwards compatibility
         if (showTimeInputs && startTime) {
             formData.append('start_time', startTime)
             if (endTime) {
@@ -55,6 +72,8 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
             setDescription('')
             setDueDate(new Date().toISOString().split('T')[0])
             setStatus('pending')
+            setAllDay(true)
+            setDueTime('09:00')
             setShowTimeInputs(false)
             setStartTime('')
             setEndTime('')
@@ -143,21 +162,41 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                         <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3 cursor-pointer">
                             <input
                                 type="checkbox"
-                                checked={showTimeInputs}
+                                checked={!allDay}
                                 onChange={(e) => {
-                                    setShowTimeInputs(e.target.checked)
-                                    if (!e.target.checked) {
-                                        setStartTime('')
-                                        setEndTime('')
+                                    setAllDay(!e.target.checked)
+                                    if (!e.target.checked && !dueTime) {
+                                        setDueTime('09:00')
                                     }
                                 }}
                                 className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                             />
-                            Add time
+                            Schedule at specific time
                         </label>
 
-                        {showTimeInputs && (
-                            <div className="grid grid-cols-2 gap-3">
+                        {!allDay && (
+                            <div>
+                                <label htmlFor="dueTime" className="block text-xs font-medium text-gray-600 mb-1">
+                                    Time
+                                </label>
+                                <input
+                                    id="dueTime"
+                                    type="time"
+                                    value={dueTime}
+                                    onChange={(e) => setDueTime(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                    required={!allDay}
+                                />
+                                <p className="mt-1 text-xs text-gray-500">
+                                    {allDay ? 'Task will be marked as all-day' : 'Task will be scheduled at this time'}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Legacy time inputs (hidden by default, for backwards compatibility) */}
+                        <details className="mt-3">
+                            <summary className="text-xs text-gray-500 cursor-pointer">Advanced: Time range</summary>
+                            <div className="mt-2 grid grid-cols-2 gap-3">
                                 <div>
                                     <label htmlFor="start_time" className="block text-xs font-medium text-gray-600 mb-1">
                                         Start time
@@ -166,7 +205,10 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                                         id="start_time"
                                         type="time"
                                         value={startTime}
-                                        onChange={(e) => setStartTime(e.target.value)}
+                                        onChange={(e) => {
+                                            setStartTime(e.target.value)
+                                            setShowTimeInputs(true)
+                                        }}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                                     />
                                 </div>
@@ -178,12 +220,15 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                                         id="end_time"
                                         type="time"
                                         value={endTime}
-                                        onChange={(e) => setEndTime(e.target.value)}
+                                        onChange={(e) => {
+                                            setEndTime(e.target.value)
+                                            setShowTimeInputs(true)
+                                        }}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                                     />
                                 </div>
                             </div>
-                        )}
+                        </details>
                     </div>
 
                     {/* Status */}

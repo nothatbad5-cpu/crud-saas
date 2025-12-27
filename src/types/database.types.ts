@@ -22,6 +22,7 @@ export interface Database {
           due_date: string | null
           start_time: string | null
           end_time: string | null
+          due_at: string | null
         }
         Insert: {
           id?: string
@@ -35,6 +36,7 @@ export interface Database {
           due_date?: string | null
           start_time?: string | null
           end_time?: string | null
+          due_at?: string | null
         }
         Update: {
           id?: string
@@ -48,6 +50,7 @@ export interface Database {
           due_date?: string | null
           start_time?: string | null
           end_time?: string | null
+          due_at?: string | null
         }
         Relationships: []
       }

@@ -74,20 +74,29 @@ export function getMonthName(month: number): string {
 }
 
 /**
- * Group tasks by their due_date (or created_at as fallback)
+ * Group tasks by their due_at date (or due_date/created_at as fallback)
  */
 export function groupTasksByDate(tasks: any[]): Map<string, any[]> {
     const grouped = new Map<string, any[]>()
 
     tasks.forEach(task => {
-        // Fallback to created_at if due_date is null
-        const dateStr = task.due_date || task.created_at?.split('T')[0]
+        // Prefer due_at, fallback to due_date, then created_at
+        let dateStr: string | null = null
+        
+        if (task.due_at) {
+            // Extract date from timestamptz
+            dateStr = task.due_at.split('T')[0]
+        } else if (task.due_date) {
+            dateStr = task.due_date
+        } else if (task.created_at) {
+            dateStr = task.created_at.split('T')[0]
+        }
+        
         if (dateStr) {
-            const key = dateStr
-            if (!grouped.has(key)) {
-                grouped.set(key, [])
+            if (!grouped.has(dateStr)) {
+                grouped.set(dateStr, [])
             }
-            grouped.get(key)!.push(task)
+            grouped.get(dateStr)!.push(task)
         }
     })
 
