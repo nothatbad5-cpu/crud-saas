@@ -22,6 +22,13 @@ export default function ThemeToggleFab() {
         // Explicitly set/remove dark class based on newTheme
         document.documentElement.classList.toggle('dark', newTheme === 'dark')
         
+        // Debug logging
+        console.log('Theme toggle:', {
+            nextTheme: newTheme,
+            htmlClassName: document.documentElement.className,
+            hasDarkClass: document.documentElement.classList.contains('dark')
+        })
+        
         const meta = document.querySelector('meta[name="theme-color"]')
         if (meta) meta.setAttribute('content', newTheme === "dark" ? "#0b0b0b" : "#ffffff")
     }

@@ -23,7 +23,7 @@ export default async function DashboardLayout({
         const stats = await getUsageStats(user.id)
 
         return (
-            <div className="min-h-screen bg-gray-100 relative">
+            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 relative">
                 <Navbar />
                 <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                     <DashboardLayoutClient stats={stats}>
