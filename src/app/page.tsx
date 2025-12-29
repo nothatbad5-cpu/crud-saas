@@ -12,11 +12,11 @@ export default async function Home() {
     }
     
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
-            <div className="w-full max-w-md space-y-8 p-8 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="flex min-h-screen items-center justify-center bg-[#0b0b0b]">
+            <div className="w-full max-w-md space-y-8 p-8 bg-[#111] rounded-lg shadow">
                 <div className="text-center">
-                    <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100">TaskMaster</h1>
-                    <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
+                    <h1 className="text-4xl font-extrabold text-gray-100">TaskMaster</h1>
+                    <p className="mt-2 text-lg text-gray-400">
                         The simplest way to manage your daily tasks
                     </p>
                 </div>
@@ -34,7 +34,7 @@ export default async function Home() {
                             <div className="w-full border-t border-gray-300" />
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or</span>
+                            <span className="px-2 bg-[#111] text-gray-400">Or</span>
                         </div>
                     </div>
                     

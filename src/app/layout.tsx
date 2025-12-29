@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
-import ThemeToggleFab from "@/components/ThemeToggleFab";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,36 +23,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#0b0b0b" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Script
-          id="theme-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                const theme = localStorage.getItem('theme');
-                const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const isDark = theme === 'dark' || (!theme && systemPrefersDark);
-                const finalTheme = isDark ? 'dark' : 'light';
-                if (isDark) {
-                  document.documentElement.classList.add('dark');
-                } else {
-                  document.documentElement.classList.remove('dark');
-                }
-                const meta = document.querySelector('meta[name="theme-color"]');
-                if (meta) meta.setAttribute('content', finalTheme === "dark" ? "#0b0b0b" : "#ffffff");
-              })();
-            `,
-          }}
-        />
         {children}
-        <ThemeToggleFab />
       </body>
     </html>
   );

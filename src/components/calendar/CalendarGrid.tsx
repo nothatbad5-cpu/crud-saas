@@ -41,9 +41,7 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
     }
 
     const handleNextMonth = () => {
-        console.log('handleNextMonth called', { currentYear, currentMonth })
         const { year, month } = getNextMonth(currentYear, currentMonth)
-        console.log('New month calculated:', { year, month })
         setCurrentYear(year)
         setCurrentMonth(month)
     }

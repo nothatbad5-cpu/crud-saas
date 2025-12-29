@@ -43,7 +43,7 @@ export default function DashboardClient({ tasks, stats, error }: DashboardClient
                             </svg>
                         </div>
                         <div className="ml-3">
-                            <p className="text-sm text-red-700">{error}</p>
+                            <p className="text-sm text-red-700">{typeof error === 'string' ? error : String(error || '')}</p>
                         </div>
                     </div>
                 </div>
