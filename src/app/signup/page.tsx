@@ -1,7 +1,10 @@
 import { signup } from '@/app/auth/actions'
 
-export default async function SignupPage(props: { searchParams: Promise<{ error?: string }> }) {
-    const searchParams = await props.searchParams
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+export default async function SignupPage(props: { searchParams: { error?: string } }) {
+    const searchParams = props.searchParams
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-50">
             <div className="w-full max-w-md space-y-8 p-8 bg-white rounded-lg shadow">
@@ -42,6 +45,7 @@ export default async function SignupPage(props: { searchParams: Promise<{ error?
 
                     <div>
                         <button
+                            type="submit"
                             formAction={signup}
                             className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                         >

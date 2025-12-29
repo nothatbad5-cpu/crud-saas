@@ -4,9 +4,9 @@ import OnboardingModal from '@/components/OnboardingModal'
 import DashboardClient from '@/components/DashboardClient'
 import { redirect } from 'next/navigation'
 
-export default async function DashboardPage(props: { searchParams: Promise<{ error?: string }> }) {
+export default async function DashboardPage(props: { searchParams: { error?: string } }) {
     try {
-        const searchParams = await props.searchParams
+        const searchParams = props.searchParams
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
 

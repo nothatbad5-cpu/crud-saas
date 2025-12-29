@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import DashboardLayoutClient from '@/components/DashboardLayoutClient'
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export default async function DashboardLayout({
     children,
 }: {

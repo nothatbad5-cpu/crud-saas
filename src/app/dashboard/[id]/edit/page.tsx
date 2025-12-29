@@ -8,7 +8,7 @@ export default async function EditTaskPage({
     searchParams,
 }: {
     params: Promise<{ id: string }>
-    searchParams: Promise<{ error?: string }>
+    searchParams: { error?: string }
 }) {
     const { id } = await params
     const supabase = await createClient()
@@ -19,7 +19,7 @@ export default async function EditTaskPage({
     }
 
     const updateTaskWithId = updateTask.bind(null, id)
-    const resolvedSearchParams = await searchParams
+    const resolvedSearchParams = searchParams
 
     return (
         <div className="max-w-2xl mx-auto">
