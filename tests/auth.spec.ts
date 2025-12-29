@@ -27,7 +27,7 @@ test.describe('Authentication Flow', () => {
         await page.fill('input[type="password"]', testPassword);
 
         // Submit
-        await page.click('button[type="submit"]');
+        await page.getByRole('button', { name: /sign up/i }).click();
 
         // Should redirect to dashboard
         await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
@@ -71,7 +71,7 @@ test.describe('Authentication Flow', () => {
         // Try to login with non-existent credentials
         await page.fill('input[type="email"]', 'nonexistent@example.com');
         await page.fill('input[type="password"]', 'wrongpassword');
-        await page.click('button[type="submit"]');
+        await page.getByRole('button', { name: /sign in/i }).click();
 
         // Should show error (adjust selector based on your error display)
         await expect(page.locator('text=/invalid|error|incorrect/i')).toBeVisible({ timeout: 5000 });
@@ -90,7 +90,7 @@ test.describe('Authentication Flow', () => {
         await page.goto('/login');
         await page.fill('input[type="email"]', email);
         await page.fill('input[type="password"]', password);
-        await page.click('button[type="submit"]');
+        await page.getByRole('button', { name: /sign in/i }).click();
 
         // Should redirect to dashboard
         await expect(page).toHaveURL('/dashboard');

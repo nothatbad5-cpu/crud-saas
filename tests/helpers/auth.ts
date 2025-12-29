@@ -15,8 +15,8 @@ export async function signUp(page: Page, email: string, password: string) {
     await page.fill('input[type="email"]', email);
     await page.fill('input[type="password"]', password);
 
-    // Submit form
-    await page.click('button[type="submit"]');
+    // Submit form - use text-based selector for reliability
+    await page.getByRole('button', { name: /sign up/i }).click();
 
     // Wait for redirect to dashboard
     await page.waitForURL('/dashboard', { timeout: 10000 });
@@ -33,8 +33,8 @@ export async function login(page: Page, email: string, password: string) {
     await page.fill('input[type="email"]', email);
     await page.fill('input[type="password"]', password);
 
-    // Submit form
-    await page.click('button[type="submit"]');
+    // Submit form - use text-based selector for reliability
+    await page.getByRole('button', { name: /sign in/i }).click();
 
     // Wait for redirect to dashboard
     await page.waitForURL('/dashboard', { timeout: 10000 });
