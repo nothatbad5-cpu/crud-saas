@@ -22,11 +22,23 @@ export default function OnboardingModal({ isOpen }: { isOpen: boolean }) {
     }
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        <div 
+            className="fixed inset-0 z-50 overflow-y-auto pointer-events-none" 
+            aria-labelledby="modal-title" 
+            role="dialog" 
+            aria-modal="true"
+        >
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0 pointer-events-none">
+                <div 
+                    className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity pointer-events-auto" 
+                    aria-hidden="true"
+                    onClick={() => handleComplete()}
+                ></div>
                 <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full sm:p-6">
+                <div 
+                    className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full sm:p-6 relative z-10 pointer-events-auto"
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <div>
                         <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
                             <svg className="h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
