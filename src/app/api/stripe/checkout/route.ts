@@ -28,7 +28,7 @@ export async function POST() {
         mode: 'subscription',
         success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?success=true`,
         cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/pricing?canceled=true`,
-        customer_email: user.email,
+        ...(user.email && { customer_email: user.email }),
         metadata: {
             user_id: user.id,
         },
