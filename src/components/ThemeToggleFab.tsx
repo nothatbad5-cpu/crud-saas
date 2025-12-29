@@ -19,11 +19,8 @@ export default function ThemeToggleFab() {
         setTheme(newTheme)
         localStorage.setItem('theme', newTheme)
         
-        if (newTheme === 'dark') {
-            document.documentElement.classList.add('dark')
-        } else {
-            document.documentElement.classList.remove('dark')
-        }
+        // Explicitly set/remove dark class based on newTheme
+        document.documentElement.classList.toggle('dark', newTheme === 'dark')
         
         const meta = document.querySelector('meta[name="theme-color"]')
         if (meta) meta.setAttribute('content', newTheme === "dark" ? "#0b0b0b" : "#ffffff")
