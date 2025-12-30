@@ -93,14 +93,82 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
         }))
         : []
 
+    // Prepare agenda data for mobile view
+    const agendaDates = useMemo(() => {
+        const dates = Array.from(tasksByDate.keys()).sort()
+        const today = new Date().toISOString().split('T')[0]
+        const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
+        
+        return dates.map(dateKey => {
+            const date = new Date(dateKey + 'T00:00:00')
+            const tasks = sortTasksByDueAt(tasksByDate.get(dateKey) || [])
+            let label = dateKey
+            if (dateKey === today) label = 'Today'
+            else if (dateKey === tomorrow) label = 'Tomorrow'
+            else {
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'long' })
+                const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                label = `${dayName}, ${monthDay}`
+            }
+            return { dateKey, label, date, tasks }
+        })
+    }, [tasksByDate])
+
     return (
         <>
-            <DndContext
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-            >
-                <div className="bg-[#111] border border-[#262626] rounded-xl shadow-sm overflow-hidden">
+            {/* Mobile Agenda View */}
+            <div className="block md:hidden space-y-4">
+                {agendaDates.length === 0 ? (
+                    <div className="text-center py-12">
+                        <p className="text-sm text-gray-400">No tasks scheduled</p>
+                    </div>
+                ) : (
+                    agendaDates.map(({ dateKey, label, tasks }) => (
+                        <div key={dateKey} className="bg-[#111] border border-[#262626] rounded-xl p-4">
+                            <h3 className="text-sm font-semibold text-gray-100 mb-3">{label}</h3>
+                            <div className="space-y-2">
+                                {tasks.map(task => {
+                                    const taskTime = task.due_at
+                                        ? extractTimeFromDueAt(task.due_at)
+                                        : task.start_time
+                                    return (
+                                        <div
+                                            key={task.id}
+                                            className="flex items-start gap-3 p-2 rounded-lg hover:bg-[#161616] transition-colors"
+                                        >
+                                            <div className="flex-shrink-0 w-16 text-xs text-gray-400 font-medium pt-0.5">
+                                                {taskTime || 'All day'}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-medium text-gray-100 break-words">
+                                                    {task.title}
+                                                </div>
+                                                {task.description && (
+                                                    <div className="text-xs text-gray-400 mt-1 break-words line-clamp-1">
+                                                        {task.description}
+                                                    </div>
+                                                )}
+                                                <span className="inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-[#1f1f1f] text-[#e5e5e5] border border-[#262626]">
+                                                    {task.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Desktop Calendar Grid */}
+            <div className="hidden md:block">
+                <DndContext
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                >
+                    <div className="bg-[#111] border border-[#262626] rounded-xl shadow-sm overflow-hidden">
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-[#262626] flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -205,23 +273,24 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                                 )
                             })}
                         </div>
-                    </div>
-                </div>
-
-                {/* Drag Overlay */}
-                <DragOverlay>
-                    {activeTask && (
-                        <div className="opacity-80">
-                            <TaskChip
-                                title={activeTask.title}
-                                status={activeTask.status}
-                                startTime={activeTask.due_at ? extractTimeFromDueAt(activeTask.due_at) : activeTask.start_time}
-                                dueAt={activeTask.due_at}
-                            />
                         </div>
-                    )}
-                </DragOverlay>
-            </DndContext>
+                    </div>
+
+                    {/* Drag Overlay */}
+                    <DragOverlay>
+                        {activeTask && (
+                            <div className="opacity-80">
+                                <TaskChip
+                                    title={activeTask.title}
+                                    status={activeTask.status}
+                                    startTime={activeTask.due_at ? extractTimeFromDueAt(activeTask.due_at) : activeTask.start_time}
+                                    dueAt={activeTask.due_at}
+                                />
+                            </div>
+                        )}
+                    </DragOverlay>
+                </DndContext>
+            </div>
 
             {/* Day Panel with Timeline View */}
             <DayPanel

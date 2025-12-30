@@ -32,7 +32,53 @@ export default function TaskTable({ tasks }: { tasks: Task[] }) {
 
     return (
         <div className="flex flex-col">
-            <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            {/* Mobile Card View */}
+            <div className="block md:hidden space-y-3">
+                {tasks.map((task) => (
+                    <div key={task.id} className="bg-[#111] border border-[#262626] rounded-xl p-4">
+                        {/* Top row: Title + Status */}
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                            <h3 className="text-sm font-medium text-gray-100 break-words flex-1 line-clamp-2">
+                                {task.title}
+                            </h3>
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#1f1f1f] text-[#e5e5e5] border border-[#262626] flex-shrink-0">
+                                {task.status}
+                            </span>
+                        </div>
+                        {/* Description */}
+                        {task.description && (
+                            <p className="text-xs text-gray-400 mb-2 break-words line-clamp-2">
+                                {task.description}
+                            </p>
+                        )}
+                        {/* Second row: Created date */}
+                        <div className="text-xs text-gray-400 mb-3">
+                            {new Date(task.created_at).toLocaleDateString()}
+                        </div>
+                        {/* Bottom row: Actions */}
+                        <div className="flex gap-3 pt-2 border-t border-[#262626]">
+                            <Link 
+                                href={`/dashboard/${task.id}/edit`} 
+                                className="flex-1 text-center px-3 py-1.5 text-xs font-medium text-[#f5f5f5] bg-[#161616] hover:bg-[#1f1f1f] rounded-md transition-colors"
+                            >
+                                Edit
+                            </Link>
+                            <button
+                                onClick={async () => {
+                                    if (confirm('Are you sure you want to delete this task?')) {
+                                        await deleteTask(task.id)
+                                    }
+                                }}
+                                className="flex-1 px-3 py-1.5 text-xs font-medium text-[#f5f5f5] bg-[#161616] hover:bg-[#1f1f1f] rounded-md transition-colors"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            {/* Desktop Table View */}
+            <div className="hidden md:block -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                 <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
                     <div className="shadow overflow-hidden border-b border-[#262626] sm:rounded-lg">
                         <table className="min-w-full divide-y divide-[#262626]">

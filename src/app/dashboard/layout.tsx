@@ -25,7 +25,7 @@ export default async function DashboardLayout({
         return (
             <div className="min-h-screen bg-[#0b0b0b] relative">
                 <Navbar />
-                <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 text-gray-100">
+                <main className="max-w-7xl mx-auto py-4 px-3 sm:py-6 sm:px-6 lg:px-8 text-gray-100">
                     <DashboardLayoutClient stats={stats}>
                         {children}
                     </DashboardLayoutClient>
