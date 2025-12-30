@@ -6,6 +6,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { canCreateTask } from '@/lib/usage'
 import { combineDateTimeToISO, extractDateFromDueAt } from '@/lib/datetime-utils'
+import { extractDueDate } from '@/lib/ai/dateExtractor'
 import { Action } from './schema'
 
 interface ExecutionResult {
@@ -36,7 +37,7 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                 }
             }
             
-            // Parse due date if provided
+            // Parse due date if provided - use chrono-node for deterministic parsing
             let due_at: string | null = null
             let due_date: string | null = null
             
@@ -58,27 +59,19 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                     due_at = combineDateTimeToISO(action.dueDate, null, true)
                     due_date = action.dueDate
                 } else {
-                    // Try to parse natural language dates (fallback)
-                    const lower = action.dueDate.toLowerCase()
-                    const today = new Date()
-                    let targetDate = new Date(today)
-                    
-                    if (lower.includes('tomorrow')) {
-                        targetDate.setDate(today.getDate() + 1)
-                    } else if (lower.includes('today')) {
-                        targetDate = today
-                    } else if (lower.includes('next friday') || lower.includes('friday')) {
-                        const dayOfWeek = today.getDay()
-                        const daysUntilFriday = (5 - dayOfWeek + 7) % 7 || 7
-                        targetDate.setDate(today.getDate() + daysUntilFriday)
-                    } else if (lower.includes('next week')) {
-                        targetDate.setDate(today.getDate() + 7)
-                    } else if (lower.includes('next month')) {
-                        targetDate.setMonth(today.getMonth() + 1)
+                    // Use chrono-node for deterministic natural language parsing
+                    const extracted = extractDueDate(action.dueDate)
+                    if (extracted.dueDateISO) {
+                        try {
+                            const date = new Date(extracted.dueDateISO)
+                            if (!isNaN(date.getTime())) {
+                                due_at = date.toISOString()
+                                due_date = extractDateFromDueAt(due_at)
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse extracted date:', extracted.dueDateISO, e)
+                        }
                     }
-                    
-                    due_date = targetDate.toISOString().split('T')[0]
-                    due_at = combineDateTimeToISO(due_date, null, true)
                 }
             }
             
@@ -181,27 +174,19 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                         updateData.due_at = combineDateTimeToISO(action.patch.dueDate, null, true)
                         updateData.due_date = action.patch.dueDate
                     } else {
-                        // Try to parse natural language dates (fallback)
-                        const lower = action.patch.dueDate.toLowerCase()
-                        const today = new Date()
-                        let targetDate = new Date(today)
-                        
-                        if (lower.includes('tomorrow')) {
-                            targetDate.setDate(today.getDate() + 1)
-                        } else if (lower.includes('today')) {
-                            targetDate = today
-                        } else if (lower.includes('next friday') || lower.includes('friday')) {
-                            const dayOfWeek = today.getDay()
-                            const daysUntilFriday = (5 - dayOfWeek + 7) % 7 || 7
-                            targetDate.setDate(today.getDate() + daysUntilFriday)
-                        } else if (lower.includes('next week')) {
-                            targetDate.setDate(today.getDate() + 7)
-                        } else if (lower.includes('next month')) {
-                            targetDate.setMonth(today.getMonth() + 1)
+                        // Use chrono-node for deterministic natural language parsing
+                        const extracted = extractDueDate(action.patch.dueDate)
+                        if (extracted.dueDateISO) {
+                            try {
+                                const date = new Date(extracted.dueDateISO)
+                                if (!isNaN(date.getTime())) {
+                                    updateData.due_at = date.toISOString()
+                                    updateData.due_date = extractDateFromDueAt(updateData.due_at)
+                                }
+                            } catch (e) {
+                                console.error('Failed to parse extracted date:', extracted.dueDateISO, e)
+                            }
                         }
-                        
-                        updateData.due_date = targetDate.toISOString().split('T')[0]
-                        updateData.due_at = combineDateTimeToISO(updateData.due_date, null, true)
                     }
                 }
             }

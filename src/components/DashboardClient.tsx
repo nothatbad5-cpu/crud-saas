@@ -35,7 +35,7 @@ export default function DashboardClient({ tasks, stats, error }: DashboardClient
     ])
 
     return (
-        <div className="w-full min-h-full pb-[calc(96px+env(safe-area-inset-bottom))]">
+        <div className="w-full min-h-full pb-24" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}>
             {/* Error Banner */}
             {error && (
                 <div className="bg-[#1f1f1f] border-l-4 border-[#262626] p-4 mb-6">
@@ -137,8 +137,8 @@ export default function DashboardClient({ tasks, stats, error }: DashboardClient
                 onClose={() => setIsCreateModalOpen(false)}
             />
 
-            {/* Keyboard Shortcuts Hint - Hidden on mobile */}
-            <div className="hidden md:block fixed bottom-4 left-4 bg-[#111]/90 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2 text-xs text-gray-400 border border-[#262626] z-30 pointer-events-auto" style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+            {/* Keyboard Shortcuts Hint - Hidden on mobile, positioned at bottom of content */}
+            <div className="hidden md:block absolute bottom-4 left-4 bg-[#111]/90 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2 text-xs text-gray-400 border border-[#262626] z-30 pointer-events-auto">
                 <span className="font-semibold">Shortcuts:</span> <kbd className="px-1.5 py-0.5 bg-[#1f1f1f] border border-[#262626] rounded">N</kbd> New Task · <kbd className="px-1.5 py-0.5 bg-[#1f1f1f] border border-[#262626] rounded">T</kbd> Toggle View
             </div>
         </div>

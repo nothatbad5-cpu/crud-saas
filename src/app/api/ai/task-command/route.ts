@@ -6,6 +6,7 @@ import { parseWithOpenAI } from '@/lib/ai/openaiTaskParser'
 import { storePendingActions } from '@/lib/ai/confirmTokenStore'
 import { computeRequiresConfirm, checkAmbiguousDeletes } from '@/lib/ai/confirm'
 import { extractDueDate } from '@/lib/ai/dateExtractor'
+import { findTaskByTitle, normalizeTitle } from '@/lib/ai/taskMatcher'
 import { executeActions } from '@/lib/ai-command/executor'
 import { revalidatePath } from 'next/cache'
 import crypto from 'crypto'
@@ -65,27 +66,71 @@ export async function POST(request: NextRequest) {
             // IGNORE parsed.requiresConfirm - we compute it server-side
         }
         
-        // Fill in missing dueDate from extracted date (for create actions)
+        // Process actions: fill dates, check for duplicates, convert create to update if task exists
+        const processedActions: any[] = []
+        
         for (const action of actions) {
-            if (action.type === 'create' && !action.dueDate && extractedDate.dueDateISO) {
-                action.dueDate = extractedDate.dueDateISO
+            if (action.type === 'create') {
+                // Fill in missing dueDate from extracted date
+                if (!action.dueDate && extractedDate.dueDateISO) {
+                    action.dueDate = extractedDate.dueDateISO
+                }
                 // Update title if it was cleaned
                 if (extractedDate.title && extractedDate.title !== input.trim()) {
                     action.title = extractedDate.title
                 }
+                
+                // Check if task with same normalized title already exists
+                const existingTask = await findTaskByTitle(user.id, action.title)
+                
+                if (existingTask) {
+                    // Convert create to update
+                    const updateAction: any = {
+                        type: 'update',
+                        match: { id: existingTask.id },
+                        patch: {},
+                    }
+                    
+                    // Update due date if provided
+                    if (action.dueDate) {
+                        updateAction.patch.dueDate = action.dueDate
+                    }
+                    
+                    // Update other fields if provided
+                    if (action.description) {
+                        updateAction.patch.description = action.description
+                    }
+                    if (action.status) {
+                        updateAction.patch.status = action.status
+                    }
+                    
+                    processedActions.push(updateAction)
+                } else {
+                    processedActions.push(action)
+                }
+            } else if (action.type === 'update') {
+                // Fill in missing dueDate from extracted date if updating
+                if (action.patch.dueDate === undefined && extractedDate.dueDateISO) {
+                    action.patch.dueDate = extractedDate.dueDateISO
+                }
+                processedActions.push(action)
+            } else {
+                processedActions.push(action)
             }
         }
         
-        // Temporary logging for verification
-        console.log({
-            input,
-            extractedDate,
-            aiActions: actions,
-        })
+        // Dev-only logging
+        if (process.env.NODE_ENV === 'development') {
+            console.log({
+                input,
+                extractedDate,
+                processedActions,
+            })
+        }
         
-        // Validate actions with Zod
+        // Validate processed actions with Zod
         const validatedActions = []
-        for (const action of actions) {
+        for (const action of processedActions) {
             const result = ActionSchema.safeParse(action)
             if (result.success) {
                 validatedActions.push(result.data)
