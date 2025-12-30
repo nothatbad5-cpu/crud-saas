@@ -39,12 +39,32 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
                 return
             }
 
-            setResult(data)
-
-            // If no confirmation needed, execute immediately
-            if (!data.requiresConfirm && data.actions.length > 0) {
-                await executeActions(data.actions, data.confirmToken)
+            // If no confirmation needed, show result immediately
+            if (!data.requiresConfirm) {
+                setExecutionResult({
+                    success: true,
+                    message: data.resultMessage || data.message || 'Command executed successfully',
+                })
+                // Clear input and refresh
+                setInput('')
+                if (onSuccess) {
+                    onSuccess()
+                } else {
+                    // Small delay to show result, then refresh
+                    setTimeout(() => {
+                        window.location.reload()
+                    }, 500)
+                }
+                return
             }
+
+            // Confirmation required - show preview and buttons
+            setResult({
+                preview: data.preview,
+                requiresConfirm: true,
+                confirmToken: data.confirmToken,
+                actions: [], // Not needed for confirm flow
+            })
         } catch (error: any) {
             setExecutionResult({
                 success: false,
@@ -55,39 +75,53 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
         }
     }
 
-    const executeActions = async (actions: Action[], confirmToken?: string) => {
+    const handleConfirm = async () => {
+        if (!result || !result.confirmToken) return
+        
         setIsConfirming(true)
         try {
             const response = await fetch('/api/ai/task-command/confirm', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ confirmToken }),
+                body: JSON.stringify({ confirmToken: result.confirmToken }),
             })
 
             const data = await response.json()
 
             if (!response.ok) {
-                setExecutionResult({
-                    success: false,
-                    message: data.error || 'Failed to execute command',
-                })
+                // Handle "Confirmation token is required" or expired token
+                if (data.error?.includes('token')) {
+                    setExecutionResult({
+                        success: false,
+                        message: 'Confirmation expired. Please try again.',
+                    })
+                    setResult(null)
+                } else {
+                    setExecutionResult({
+                        success: false,
+                        message: data.error || 'Failed to execute command',
+                    })
+                }
                 return
             }
 
             setExecutionResult({
-                success: data.success,
-                message: data.message || 'Command executed successfully',
+                success: data.success !== false,
+                message: data.resultMessage || data.message || 'Command executed successfully',
             })
 
             // Clear input and result on success
-            if (data.success) {
+            if (data.success !== false) {
                 setInput('')
                 setResult(null)
                 // Trigger refresh
                 if (onSuccess) {
                     onSuccess()
                 } else {
-                    window.location.reload()
+                    // Small delay to show result, then refresh
+                    setTimeout(() => {
+                        window.location.reload()
+                    }, 500)
                 }
             }
         } catch (error: any) {
@@ -98,11 +132,6 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
         } finally {
             setIsConfirming(false)
         }
-    }
-
-    const handleConfirm = async () => {
-        if (!result || !result.confirmToken) return
-        await executeActions(result.actions, result.confirmToken)
     }
 
     const handleCancel = () => {

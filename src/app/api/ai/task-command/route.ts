@@ -4,6 +4,9 @@ import { ActionSchema, CommandResponseSchema } from '@/lib/ai-command/schema'
 import { parseCommand } from '@/lib/ai-command/parser'
 import { parseWithOpenAI } from '@/lib/ai/openaiTaskParser'
 import { storePendingActions } from '@/lib/ai/confirmTokenStore'
+import { computeRequiresConfirm, checkAmbiguousDeletes } from '@/lib/ai/confirm'
+import { executeActions } from '@/lib/ai-command/executor'
+import { revalidatePath } from 'next/cache'
 import crypto from 'crypto'
 
 /**
@@ -35,7 +38,6 @@ export async function POST(request: NextRequest) {
         // Try OpenAI first (if configured)
         let actions: any[] = []
         let preview = ''
-        let requiresConfirm = false
         
         const openaiApiKey = process.env.OPENAI_API_KEY
         
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
                 const aiResult = await parseWithOpenAI(input)
                 actions = aiResult.actions
                 preview = aiResult.preview
-                requiresConfirm = aiResult.requiresConfirm
+                // IGNORE aiResult.requiresConfirm - we compute it server-side
             } catch (aiError: any) {
                 console.error('OpenAI parsing failed, falling back to rule-based parser:', aiError?.message || aiError)
                 // Fall through to rule-based parser
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
             const parsed = parseCommand(input)
             actions = parsed.actions
             preview = parsed.preview
-            requiresConfirm = parsed.requiresConfirm
+            // IGNORE parsed.requiresConfirm - we compute it server-side
         }
         
         // Validate actions with Zod
@@ -75,47 +77,50 @@ export async function POST(request: NextRequest) {
             }
         }
         
-        // Check if confirmation is required
-        // - bulk_delete_all always requires confirmation
-        // - delete with weak match (contains) requires confirmation
-        // - multiple matches require confirmation
-        if (validatedActions.some(a => a.type === 'bulk_delete_all')) {
-            requiresConfirm = true
-        }
+        // SINGLE SOURCE OF TRUTH: Compute requiresConfirm server-side
+        let requiresConfirm = computeRequiresConfirm(validatedActions)
         
-        // Check for delete actions with title match (weak matching requires confirm)
-        for (const action of validatedActions) {
-            if (action.type === 'delete' && action.match.title && !action.match.id) {
-                // Title-based delete requires confirmation for safety
-                requiresConfirm = true
-                break
+        // Check for ambiguous deletes (multiple matches)
+        if (requiresConfirm) {
+            const ambiguousCheck = await checkAmbiguousDeletes(user.id, validatedActions)
+            if (ambiguousCheck.isAmbiguous) {
+                // Return noop for ambiguous deletes
+                return NextResponse.json({
+                    preview: ambiguousCheck.message || 'Ambiguous command',
+                    requiresConfirm: false,
+                    resultMessage: ambiguousCheck.message || 'Please be more specific',
+                    actionsExecutedCount: 0,
+                    actions: [], // Not needed for noop
+                })
             }
         }
         
-        // Generate confirmation token if needed
-        let confirmToken: string | undefined
-        if (requiresConfirm) {
-            confirmToken = crypto.randomBytes(32).toString('hex')
-            // Store pending actions with token
-            storePendingActions(confirmToken, user.id, validatedActions)
-        }
-        
-        const response = {
-            actions: validatedActions,
-            preview,
-            requiresConfirm,
-            confirmToken,
-        }
-        
-        // Validate response schema
-        const validated = CommandResponseSchema.safeParse(response)
-        if (!validated.success) {
+        // If no confirmation needed, execute immediately
+        if (!requiresConfirm) {
+            const result = await executeActions(user.id, validatedActions)
+            
+            // Revalidate dashboard
+            revalidatePath('/dashboard')
+            
             return NextResponse.json({
-                error: 'Internal error: invalid response format',
-            }, { status: 500 })
+                preview,
+                requiresConfirm: false,
+                resultMessage: result.message,
+                actionsExecutedCount: result.affectedCount,
+                actions: [], // Not needed for immediate execution
+            })
         }
         
-        return NextResponse.json(validated.data)
+        // Confirmation required - generate token and store pending actions
+        const confirmToken = crypto.randomBytes(32).toString('hex')
+        storePendingActions(confirmToken, user.id, validatedActions, preview)
+        
+        return NextResponse.json({
+            preview,
+            requiresConfirm: true,
+            confirmToken,
+            actions: validatedActions, // Include for reference (not executed yet)
+        })
     } catch (error: any) {
         console.error('Error in task-command API:', error)
         return NextResponse.json(

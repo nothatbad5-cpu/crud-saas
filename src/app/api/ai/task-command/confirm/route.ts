@@ -31,10 +31,10 @@ export async function POST(request: NextRequest) {
             )
         }
         
-        // Retrieve pending actions from token store
-        const pendingActions = getPendingActions(confirmToken, user.id)
+        // Look up pending actions
+        const pendingData = getPendingActions(confirmToken, user.id)
         
-        if (!pendingActions) {
+        if (!pendingData) {
             return NextResponse.json(
                 { error: 'Invalid or expired confirmation token' },
                 { status: 400 }
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         
         // Validate all actions
         const validatedActions = []
-        for (const action of pendingActions) {
+        for (const action of pendingData.actions) {
             const result = ActionSchema.safeParse(action)
             if (result.success) {
                 validatedActions.push(result.data)
@@ -61,8 +61,10 @@ export async function POST(request: NextRequest) {
         revalidatePath('/dashboard')
         
         return NextResponse.json({
+            resultMessage: result.message,
+            preview: pendingData.preview,
+            requiresConfirm: false,
             success: result.success,
-            message: result.message,
             affectedCount: result.affectedCount,
         })
     } catch (error: any) {

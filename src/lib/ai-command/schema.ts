@@ -57,10 +57,12 @@ export const ActionSchema = z.discriminatedUnion('type', [
 export type Action = z.infer<typeof ActionSchema>
 
 export const CommandResponseSchema = z.object({
-    actions: z.array(ActionSchema),
+    actions: z.array(ActionSchema), // Always present (may be empty for immediate execution)
     preview: z.string(),
     requiresConfirm: z.boolean(),
     confirmToken: z.string().optional(),
+    resultMessage: z.string().optional(), // Present when requiresConfirm is false
+    actionsExecutedCount: z.number().optional(), // Present when requiresConfirm is false
 })
 
 export type CommandResponse = z.infer<typeof CommandResponseSchema>

@@ -6,14 +6,15 @@
 interface PendingAction {
     userId: string
     actions: any[]
+    preview: string
     createdAt: number
 }
 
 const tokenStore = new Map<string, PendingAction>()
 
-// Cleanup old tokens (older than 5 minutes)
-const CLEANUP_INTERVAL = 5 * 60 * 1000 // 5 minutes
-const MAX_AGE = 5 * 60 * 1000 // 5 minutes
+// Cleanup old tokens (older than 10 minutes)
+const CLEANUP_INTERVAL = 10 * 60 * 1000 // 10 minutes
+const MAX_AGE = 10 * 60 * 1000 // 10 minutes
 
 setInterval(() => {
     const now = Date.now()
@@ -24,15 +25,16 @@ setInterval(() => {
     }
 }, CLEANUP_INTERVAL)
 
-export function storePendingActions(token: string, userId: string, actions: any[]): void {
+export function storePendingActions(token: string, userId: string, actions: any[], preview: string): void {
     tokenStore.set(token, {
         userId,
         actions,
+        preview,
         createdAt: Date.now(),
     })
 }
 
-export function getPendingActions(token: string, userId: string): any[] | null {
+export function getPendingActions(token: string, userId: string): { actions: any[]; preview: string } | null {
     const data = tokenStore.get(token)
     
     if (!data) {
@@ -44,7 +46,7 @@ export function getPendingActions(token: string, userId: string): any[] | null {
         return null
     }
     
-    // Check if expired
+    // Check if expired (10 minutes as per requirements)
     if (Date.now() - data.createdAt > MAX_AGE) {
         tokenStore.delete(token)
         return null
@@ -53,6 +55,9 @@ export function getPendingActions(token: string, userId: string): any[] | null {
     // Delete after retrieval (one-time use)
     tokenStore.delete(token)
     
-    return data.actions
+    return {
+        actions: data.actions,
+        preview: data.preview,
+    }
 }
 
