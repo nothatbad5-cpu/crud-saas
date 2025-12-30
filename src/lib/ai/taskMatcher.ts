@@ -18,34 +18,28 @@ export function normalizeTitle(title: string): string {
 /**
  * Find existing task by normalized title
  * Returns the first matching task or null
+ * Uses exact normalized match for reliable duplicate detection
  */
 export async function findTaskByTitle(userId: string, title: string): Promise<{ id: string; title: string; due_at: string | null } | null> {
     const supabase = await createClient()
     const normalized = normalizeTitle(title)
     
-    // Try exact match first (case-insensitive)
-    const { data: exactMatch, error: exactError } = await supabase
+    // Get all tasks for this user to do normalized comparison
+    // This ensures we catch duplicates even with slight variations
+    const { data: allTasks, error } = await supabase
         .from('tasks')
         .select('id, title, due_at')
         .eq('user_id', userId)
-        .ilike('title', normalized)
-        .limit(1)
-        .single()
     
-    if (!exactError && exactMatch) {
-        return exactMatch
+    if (error || !allTasks) {
+        return null
     }
     
-    // Try contains match (only if it results in a single match)
-    const { data: containsMatches, error: containsError } = await supabase
-        .from('tasks')
-        .select('id, title, due_at')
-        .eq('user_id', userId)
-        .ilike('title', `%${normalized}%`)
-        .limit(2)
-    
-    if (!containsError && containsMatches && containsMatches.length === 1) {
-        return containsMatches[0]
+    // Find exact normalized match
+    for (const task of allTasks) {
+        if (normalizeTitle(task.title) === normalized) {
+            return task
+        }
     }
     
     return null

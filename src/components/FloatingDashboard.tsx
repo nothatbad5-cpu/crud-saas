@@ -65,7 +65,7 @@ export default function FloatingDashboard({ count, limit, isPro = false, onOpenC
                 onClick={() => setIsOpen(true)}
                 aria-label="Open dashboard panel"
                 className="hidden md:block fixed z-40 p-4 bg-[#f5f5f5] text-[#0b0b0b] rounded-full shadow-lg hover:bg-[#e5e5e5] transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0 group"
-                style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom))', right: '1.5rem' }}
+                style={{ bottom: 'calc(16px + env(safe-area-inset-bottom))', right: '1.5rem' }}
             >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
