@@ -61,7 +61,7 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
             const response = await fetch('/api/ai/task-command/confirm', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ actions, confirmToken }),
+                body: JSON.stringify({ confirmToken }),
             })
 
             const data = await response.json()
@@ -101,7 +101,7 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
     }
 
     const handleConfirm = async () => {
-        if (!result) return
+        if (!result || !result.confirmToken) return
         await executeActions(result.actions, result.confirmToken)
     }
 

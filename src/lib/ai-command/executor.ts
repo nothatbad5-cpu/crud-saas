@@ -201,14 +201,88 @@ export async function executeActions(userId: string, actions: Action[]): Promise
         }
         
         if (action.type === 'delete') {
-            // Find matching tasks
-            let query = supabase.from('tasks').select('id, title').eq('user_id', userId)
+            // Find matching tasks with smart matching
+            let tasks: any[] = []
             
             if (action.match.id) {
-                query = query.eq('id', action.match.id)
+                // Direct ID match
+                const { data, error: fetchError } = await supabase
+                    .from('tasks')
+                    .select('id, title')
+                    .eq('user_id', userId)
+                    .eq('id', action.match.id)
+                    .limit(1)
+                
+                if (fetchError) {
+                    return {
+                        success: false,
+                        message: `Failed to find tasks: ${fetchError.message}`,
+                        affectedCount: totalAffected,
+                    }
+                }
+                
+                tasks = data || []
             } else if (action.match.title) {
-                // Try exact match first, then contains
-                query = query.ilike('title', `%${action.match.title}%`)
+                // Smart title matching: exact -> case-insensitive exact -> contains (only if single result)
+                const title = action.match.title.trim()
+                
+                // 1. Try exact match (case-sensitive)
+                let { data, error: fetchError } = await supabase
+                    .from('tasks')
+                    .select('id, title')
+                    .eq('user_id', userId)
+                    .eq('title', title)
+                    .limit(action.limit || 100)
+                
+                if (fetchError) {
+                    return {
+                        success: false,
+                        message: `Failed to find tasks: ${fetchError.message}`,
+                        affectedCount: totalAffected,
+                    }
+                }
+                
+                if (data && data.length > 0) {
+                    tasks = data
+                } else {
+                    // 2. Try case-insensitive exact match
+                    const { data: data2, error: fetchError2 } = await supabase
+                        .from('tasks')
+                        .select('id, title')
+                        .eq('user_id', userId)
+                        .ilike('title', title)
+                        .limit(action.limit || 100)
+                    
+                    if (fetchError2) {
+                        return {
+                            success: false,
+                            message: `Failed to find tasks: ${fetchError2.message}`,
+                            affectedCount: totalAffected,
+                        }
+                    }
+                    
+                    if (data2 && data2.length > 0) {
+                        tasks = data2
+                    } else {
+                        // 3. Try contains match (only if single result expected)
+                        const { data: data3, error: fetchError3 } = await supabase
+                            .from('tasks')
+                            .select('id, title')
+                            .eq('user_id', userId)
+                            .ilike('title', `%${title}%`)
+                            .limit(action.limit || 100)
+                        
+                        if (fetchError3) {
+                            return {
+                                success: false,
+                                message: `Failed to find tasks: ${fetchError3.message}`,
+                                affectedCount: totalAffected,
+                            }
+                        }
+                        
+                        tasks = data3 || []
+                    }
+                }
             } else {
                 return {
                     success: false,
@@ -217,17 +291,16 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                 }
             }
             
-            const { data: tasks, error: fetchError } = await query.limit(action.limit || 100)
-            
-            if (fetchError) {
+            // Check for multiple matches (requires confirmation)
+            if (tasks.length > 1 && !action.match.id) {
                 return {
                     success: false,
-                    message: `Failed to find tasks: ${fetchError.message}`,
+                    message: `Multiple tasks match "${action.match.title}". Please be more specific or use the task ID.`,
                     affectedCount: totalAffected,
                 }
             }
             
-            if (!tasks || tasks.length === 0) {
+            if (tasks.length === 0) {
                 return {
                     success: false,
                     message: `No task found matching: ${action.match.title || action.match.id}`,

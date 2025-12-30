@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ActionSchema, CommandResponseSchema } from '@/lib/ai-command/schema'
 import { parseCommand } from '@/lib/ai-command/parser'
-import { revalidatePath } from 'next/cache'
+import { parseWithOpenAI } from '@/lib/ai/openaiTaskParser'
+import { storePendingActions } from '@/lib/ai/confirmTokenStore'
 import crypto from 'crypto'
 
 /**
@@ -31,28 +32,26 @@ export async function POST(request: NextRequest) {
             )
         }
         
-        // Try AI provider first (if configured)
+        // Try OpenAI first (if configured)
         let actions: any[] = []
         let preview = ''
         let requiresConfirm = false
         
-        const aiProvider = process.env.AI_PROVIDER
-        const aiApiKey = process.env.AI_API_KEY
+        const openaiApiKey = process.env.OPENAI_API_KEY
         
-        if (aiProvider && aiApiKey) {
-            // Use AI provider to parse command
+        if (openaiApiKey) {
             try {
-                const aiResult = await parseWithAI(input, aiProvider, aiApiKey)
+                const aiResult = await parseWithOpenAI(input)
                 actions = aiResult.actions
                 preview = aiResult.preview
                 requiresConfirm = aiResult.requiresConfirm
-            } catch (aiError) {
-                console.error('AI parsing failed, falling back to rule-based parser:', aiError)
+            } catch (aiError: any) {
+                console.error('OpenAI parsing failed, falling back to rule-based parser:', aiError?.message || aiError)
                 // Fall through to rule-based parser
             }
         }
         
-        // Fallback to rule-based parser if AI failed or not configured
+        // Fallback to rule-based parser if OpenAI failed or not configured
         if (actions.length === 0) {
             const parsed = parseCommand(input)
             actions = parsed.actions
@@ -77,16 +76,28 @@ export async function POST(request: NextRequest) {
         }
         
         // Check if confirmation is required
+        // - bulk_delete_all always requires confirmation
+        // - delete with weak match (contains) requires confirmation
+        // - multiple matches require confirmation
         if (validatedActions.some(a => a.type === 'bulk_delete_all')) {
             requiresConfirm = true
+        }
+        
+        // Check for delete actions with title match (weak matching requires confirm)
+        for (const action of validatedActions) {
+            if (action.type === 'delete' && action.match.title && !action.match.id) {
+                // Title-based delete requires confirmation for safety
+                requiresConfirm = true
+                break
+            }
         }
         
         // Generate confirmation token if needed
         let confirmToken: string | undefined
         if (requiresConfirm) {
             confirmToken = crypto.randomBytes(32).toString('hex')
-            // Store token in session/cache (simplified - in production use Redis or similar)
-            // For now, we'll include it in the response and validate it on confirm
+            // Store pending actions with token
+            storePendingActions(confirmToken, user.id, validatedActions)
         }
         
         const response = {
@@ -114,84 +125,4 @@ export async function POST(request: NextRequest) {
     }
 }
 
-/**
- * Parse command using AI provider (OpenAI, Anthropic, etc.)
- */
-async function parseWithAI(
-    input: string,
-    provider: string,
-    apiKey: string
-): Promise<{ actions: any[]; preview: string; requiresConfirm: boolean }> {
-    // This is a placeholder - implement based on your AI provider
-    // Example for OpenAI:
-    if (provider.toLowerCase() === 'openai') {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [
-                    {
-                        role: 'system',
-                        content: `You are a task management assistant. Parse user commands into JSON actions.
-Available actions:
-- create: { type: "create", title: string, description?: string, status?: "pending"|"completed", dueDate?: string }
-- update: { type: "update", match: { id?: string, title?: string }, patch: { title?: string, description?: string, status?: "pending"|"completed", dueDate?: string|null } }
-- delete: { type: "delete", match: { id?: string, title?: string }, limit?: number }
-- bulk_delete_all: { type: "bulk_delete_all" }
-- noop: { type: "noop", reason: string }
-
-Return JSON array of actions. Set requiresConfirm=true for bulk_delete_all or ambiguous deletes.`,
-                    },
-                    {
-                        role: 'user',
-                        content: input,
-                    },
-                ],
-                response_format: { type: 'json_object' },
-                temperature: 0.3,
-            }),
-        })
-        
-        if (!response.ok) {
-            throw new Error(`AI API error: ${response.statusText}`)
-        }
-        
-        const data = await response.json()
-        const messageContent = data.choices[0]?.message?.content
-        
-        if (!messageContent) {
-            throw new Error('No content in AI response')
-        }
-        
-        let content
-        try {
-            content = typeof messageContent === 'string' ? JSON.parse(messageContent) : messageContent
-        } catch (e) {
-            throw new Error('Invalid JSON in AI response')
-        }
-        
-        // Handle both array and single action
-        const actions = Array.isArray(content.actions) 
-            ? content.actions 
-            : content.action 
-            ? [content.action]
-            : content.actions
-            ? [content.actions]
-            : []
-        
-        return {
-            actions,
-            preview: content.preview || content.message || 'AI parsed command',
-            requiresConfirm: content.requiresConfirm || false,
-        }
-    }
-    
-    // Add other providers (Anthropic, etc.) here
-    
-    throw new Error(`Unsupported AI provider: ${provider}`)
-}
 

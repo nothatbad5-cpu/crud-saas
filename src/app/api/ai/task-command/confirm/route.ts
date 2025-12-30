@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ActionSchema } from '@/lib/ai-command/schema'
 import { executeActions } from '@/lib/ai-command/executor'
+import { getPendingActions } from '@/lib/ai/confirmTokenStore'
 import { revalidatePath } from 'next/cache'
 
 /**
@@ -21,18 +22,28 @@ export async function POST(request: NextRequest) {
         }
         
         const body = await request.json()
-        const { actions, confirmToken } = body
+        const { confirmToken } = body
         
-        if (!actions || !Array.isArray(actions)) {
+        if (!confirmToken || typeof confirmToken !== 'string') {
             return NextResponse.json(
-                { error: 'Actions array is required' },
+                { error: 'Confirmation token is required' },
+                { status: 400 }
+            )
+        }
+        
+        // Retrieve pending actions from token store
+        const pendingActions = getPendingActions(confirmToken, user.id)
+        
+        if (!pendingActions) {
+            return NextResponse.json(
+                { error: 'Invalid or expired confirmation token' },
                 { status: 400 }
             )
         }
         
         // Validate all actions
         const validatedActions = []
-        for (const action of actions) {
+        for (const action of pendingActions) {
             const result = ActionSchema.safeParse(action)
             if (result.success) {
                 validatedActions.push(result.data)
