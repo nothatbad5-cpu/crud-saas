@@ -7,8 +7,8 @@ export const revalidate = 0
 export default async function LoginPage(props: { searchParams: { error?: string } }) {
     const searchParams = props.searchParams
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#0b0b0b]">
-            <div className="w-full max-w-md space-y-8 p-8 bg-[#111] rounded-lg shadow">
+        <div className="flex min-h-[100svh] items-start sm:items-center justify-center bg-[#0b0b0b] px-4 pt-10 pb-16">
+            <div className="w-full max-w-md space-y-8 p-5 sm:p-6 bg-[#111] border border-[#262626] rounded-2xl">
                 <div className="text-center">
                     <h2 className="mt-6 text-3xl font-extrabold text-gray-100">Sign in to your account</h2>
                 </div>
