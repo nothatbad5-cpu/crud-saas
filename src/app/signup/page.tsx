@@ -6,10 +6,10 @@ export const revalidate = 0
 export default async function SignupPage(props: { searchParams: { error?: string } }) {
     const searchParams = props.searchParams
     return (
-        <div className="flex min-h-[100svh] items-start sm:items-center justify-center bg-[#0b0b0b] px-4 pt-10 pb-16">
-            <div className="w-full max-w-md space-y-8 p-5 sm:p-6 bg-[#111] border border-[#262626] rounded-2xl">
+        <div className="flex min-h-[100svh] items-start sm:items-center justify-center bg-[#0b0b0b] px-4 pt-8 pb-12">
+            <div className="w-full max-w-md space-y-8 p-5 sm:p-6 bg-[#111] border border-[#262626] rounded-xl sm:rounded-2xl">
                 <div className="text-center">
-                    <h2 className="mt-6 text-3xl font-extrabold text-gray-100">Create your account</h2>
+                    <h2 className="mt-6 text-2xl sm:text-3xl font-extrabold text-gray-100">Create your account</h2>
                 </div>
                 <form className="mt-8 space-y-6">
                     <div className="rounded-md shadow-sm -space-y-px">

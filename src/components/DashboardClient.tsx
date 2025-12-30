@@ -50,9 +50,9 @@ export default function DashboardClient({ tasks, stats, error }: DashboardClient
             )}
 
             {/* Header with View Toggle - Mobile Stacked */}
-            <div className="mb-6">
+            <div className="mb-3 md:mb-6">
                 {/* Title */}
-                <h2 className="text-2xl font-bold leading-7 text-gray-100 sm:text-3xl mb-4 md:mb-0">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold leading-7 text-gray-100 mb-3 md:mb-4 md:mb-0">
                     Dashboard
                 </h2>
                 {/* Mobile: Stacked layout */}
@@ -60,7 +60,7 @@ export default function DashboardClient({ tasks, stats, error }: DashboardClient
                     <ViewToggle currentView={view} onViewChange={setView} />
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-[#0b0b0b] bg-[#f5f5f5] hover:bg-[#e5e5e5] focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0"
+                        className="w-full h-11 inline-flex items-center justify-center px-4 border border-transparent rounded-md text-sm font-medium text-[#0b0b0b] bg-[#f5f5f5] hover:bg-[#e5e5e5] focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0"
                     >
                         New Task
                     </button>

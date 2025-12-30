@@ -124,9 +124,9 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                     </div>
                 ) : (
                     agendaDates.map(({ dateKey, label, tasks }) => (
-                        <div key={dateKey} className="bg-[#111] border border-[#262626] rounded-2xl p-4">
-                            <h3 className="text-sm font-semibold text-[#f5f5f5] mb-3">{label}</h3>
-                            <div className="space-y-2">
+                        <div key={dateKey} className="bg-[#111] border border-[#262626] rounded-xl p-4 space-y-3">
+                            <h3 className="text-xs uppercase tracking-wide text-[#737373] font-semibold">{label}</h3>
+                            <div className="space-y-1.5">
                                 {tasks.map(task => {
                                     const taskTime = task.due_at
                                         ? extractTimeFromDueAt(task.due_at)
@@ -134,9 +134,9 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                                     return (
                                         <div
                                             key={task.id}
-                                            className="flex items-start gap-3 p-2 rounded-lg hover:bg-[#161616] transition-colors"
+                                            className="flex items-start gap-3 py-1.5"
                                         >
-                                            <div className="flex-shrink-0 w-16 text-xs text-[#737373] font-medium pt-0.5">
+                                            <div className="flex-shrink-0 w-14 text-xs text-[#737373] font-medium pt-0.5">
                                                 {taskTime || '—'}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -144,7 +144,7 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                                                     {task.title}
                                                 </div>
                                                 {task.description && (
-                                                    <div className="text-xs text-[#a3a3a3] mt-1 break-words line-clamp-1">
+                                                    <div className="text-xs text-[#a3a3a3] mt-0.5 break-words line-clamp-1">
                                                         {task.description}
                                                     </div>
                                                 )}

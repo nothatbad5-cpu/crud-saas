@@ -17,10 +17,10 @@ export default function ViewToggle({ currentView, onViewChange }: ViewToggleProp
                 <button
                     onClick={() => onViewChange('table')}
                     className={`
-                        py-3 rounded-xl text-sm font-medium transition-all
+                        py-2 rounded-xl text-sm font-medium transition-all border border-[#262626]
                         ${currentView === 'table'
-                            ? 'bg-[#1f1f1f] text-gray-100 shadow-sm border border-[#262626]'
-                            : 'bg-[#161616] text-gray-400 border border-[#262626]'
+                            ? 'bg-[#1f1f1f] text-gray-100'
+                            : 'bg-[#161616] text-gray-400'
                         }
                     `}
                 >
@@ -34,10 +34,10 @@ export default function ViewToggle({ currentView, onViewChange }: ViewToggleProp
                 <button
                     onClick={() => onViewChange('calendar')}
                     className={`
-                        py-3 rounded-xl text-sm font-medium transition-all
+                        py-2 rounded-xl text-sm font-medium transition-all border border-[#262626]
                         ${currentView === 'calendar'
-                            ? 'bg-[#1f1f1f] text-gray-100 shadow-sm border border-[#262626]'
-                            : 'bg-[#161616] text-gray-400 border border-[#262626]'
+                            ? 'bg-[#1f1f1f] text-gray-100'
+                            : 'bg-[#161616] text-gray-400'
                         }
                     `}
                 >
