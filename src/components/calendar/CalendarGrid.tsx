@@ -117,16 +117,16 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
     return (
         <>
             {/* Mobile Agenda View */}
-            <div className="block md:hidden space-y-4">
+            <div className="block md:hidden space-y-2">
                 {agendaDates.length === 0 ? (
                     <div className="text-center py-12">
                         <p className="text-sm text-gray-400">No tasks scheduled</p>
                     </div>
                 ) : (
                     agendaDates.map(({ dateKey, label, tasks }) => (
-                        <div key={dateKey} className="bg-[#111] border border-[#262626] rounded-xl p-4 space-y-3">
+                        <div key={dateKey} className="bg-[#111] border border-[#262626] rounded-xl p-3 space-y-2">
                             <h3 className="text-xs uppercase tracking-wide text-[#737373] font-semibold">{label}</h3>
-                            <div className="space-y-1.5">
+                            <div className="space-y-1">
                                 {tasks.map(task => {
                                     const taskTime = task.due_at
                                         ? extractTimeFromDueAt(task.due_at)
@@ -134,9 +134,9 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                                     return (
                                         <div
                                             key={task.id}
-                                            className="flex items-start gap-3 py-1.5"
+                                            className="flex items-start gap-2 py-1"
                                         >
-                                            <div className="flex-shrink-0 w-14 text-xs text-[#737373] font-medium pt-0.5">
+                                            <div className="flex-shrink-0 w-12 text-xs text-[#737373] font-medium pt-0.5">
                                                 {taskTime || '—'}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -148,7 +148,7 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                                                         {task.description}
                                                     </div>
                                                 )}
-                                                <span className="inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-[#1f1f1f] text-[#e5e5e5] border border-[#262626]">
+                                                <span className="inline-block mt-0.5 px-2 py-0.5 text-xs font-semibold rounded-full bg-[#1f1f1f] text-[#e5e5e5] border border-[#262626]">
                                                     {task.status}
                                                 </span>
                                             </div>

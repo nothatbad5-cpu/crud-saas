@@ -33,30 +33,30 @@ export default function TaskTable({ tasks }: { tasks: Task[] }) {
     return (
         <div className="flex flex-col">
             {/* Mobile Card View */}
-            <div className="block md:hidden space-y-3">
+            <div className="block md:hidden space-y-2">
                 {tasks.map((task) => (
-                    <div key={task.id} className="bg-[#111] border border-[#262626] rounded-xl p-4">
+                    <div key={task.id} className="bg-[#111] border border-[#262626] rounded-xl p-3">
                         {/* Top row: Title + Status */}
-                        <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex items-start justify-between gap-3 mb-1.5">
                             <h3 className="text-sm font-medium text-gray-100 break-words flex-1 line-clamp-2">
                                 {task.title}
                             </h3>
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#1f1f1f] text-[#e5e5e5] border border-[#262626] flex-shrink-0">
+                            <span className="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-[#1f1f1f] text-[#e5e5e5] border border-[#262626] flex-shrink-0">
                                 {task.status}
                             </span>
                         </div>
                         {/* Description */}
                         {task.description && (
-                            <p className="text-xs text-gray-400 mb-2 break-words line-clamp-2">
+                            <p className="text-xs text-gray-400 mb-1.5 break-words line-clamp-1">
                                 {task.description}
                             </p>
                         )}
                         {/* Second row: Created date */}
-                        <div className="text-xs text-gray-400 mb-3">
+                        <div className="text-xs text-gray-400 mb-2">
                             {new Date(task.created_at).toLocaleDateString()}
                         </div>
                         {/* Bottom row: Actions */}
-                        <div className="flex gap-3 pt-2 border-t border-[#262626]">
+                        <div className="flex gap-2 pt-2 border-t border-[#262626]">
                             <Link 
                                 href={`/dashboard/${task.id}/edit`} 
                                 className="flex-1 text-center px-3 py-1.5 text-xs font-medium text-[#f5f5f5] bg-[#161616] hover:bg-[#1f1f1f] rounded-md transition-colors"
