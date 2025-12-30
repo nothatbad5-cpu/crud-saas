@@ -106,8 +106,9 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
             if (dateKey === today) label = 'Today'
             else if (dateKey === tomorrow) label = 'Tomorrow'
             else {
-                const dayName = date.toLocaleDateString('en-US', { weekday: 'long' })
-                const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                // Use deterministic formatting to prevent hydration mismatches
+                const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'UTC' }).format(date)
+                const monthDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date)
                 label = `${dayName}, ${monthDay}`
             }
             return { dateKey, label, date, tasks }

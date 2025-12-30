@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ManageSubscriptionButton from '@/components/ManageSubscriptionButton'
+import { formatDatePretty } from '@/lib/date-format'
 
 export default async function BillingPage() {
     const supabase = await createClient()
@@ -36,7 +37,7 @@ export default async function BillingPage() {
                         <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                             <dt className="text-sm font-medium text-gray-400">Current Period End</dt>
                             <dd className="mt-1 text-sm text-gray-100 sm:mt-0 sm:col-span-2">
-                                {subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString() : 'N/A'}
+                                {subscription?.current_period_end ? formatDatePretty(subscription.current_period_end) : 'N/A'}
                             </dd>
                         </div>
                     )}

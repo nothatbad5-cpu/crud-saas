@@ -137,12 +137,14 @@ export default function DayTimelineView({ selectedDate, tasks, onCreateTask }: D
         return `${hour - 12} PM`
     }
 
-    const dateStr = selectedDate.toLocaleDateString('en-US', {
+    // Use deterministic formatting to prevent hydration mismatches
+    const dateStr = new Intl.DateTimeFormat('en-US', {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
-        year: 'numeric'
-    })
+        year: 'numeric',
+        timeZone: 'UTC'
+    }).format(selectedDate)
 
     return (
         <div className="h-full flex flex-col bg-[#0b0b0b]">
