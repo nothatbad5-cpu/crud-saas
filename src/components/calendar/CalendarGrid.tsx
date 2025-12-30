@@ -100,16 +100,16 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-[#111] border border-[#262626] rounded-xl shadow-sm overflow-hidden">
                     {/* Header */}
-                    <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div className="px-6 py-4 border-b border-[#262626] flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <h2 className="text-xl font-bold text-gray-900">
+                            <h2 className="text-xl font-bold text-gray-100">
                                 {getMonthName(currentMonth)} {currentYear}
                             </h2>
                             <button
                                 onClick={handleToday}
-                                className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                className="px-3 py-1.5 text-sm font-medium text-[#f5f5f5] hover:bg-[#161616] rounded-lg transition-colors"
                             >
                                 Today
                             </button>
@@ -171,8 +171,8 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
                                             <span
                                                 className={`
                           text-sm font-medium
-                          ${day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}
-                          ${day.isToday ? 'text-indigo-600 font-bold' : ''}
+                          ${day.isCurrentMonth ? 'text-gray-100' : 'text-gray-500'}
+                          ${day.isToday ? 'text-[#f5f5f5] font-bold' : ''}
                         `}
                                             >
                                                 {day.date.getDate()}
@@ -260,10 +260,10 @@ function DroppableDay({
             onClick={onClick}
             className={`
         min-h-[100px] p-2 rounded-lg border transition-all
-        ${isCurrentMonth ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'}
-        ${isToday ? 'ring-2 ring-indigo-400 bg-indigo-50' : ''}
-        ${isOver ? 'ring-2 ring-green-400 bg-green-50' : ''}
-        hover:shadow-md hover:border-indigo-200 cursor-pointer
+        ${isCurrentMonth ? 'bg-[#111] border-[#262626]' : 'bg-[#0b0b0b] border-[#1a1a1a]'}
+        ${isToday ? 'ring-2 ring-[#a3a3a3] bg-[#161616]' : ''}
+        ${isOver ? 'ring-2 ring-[#737373] bg-[#1f1f1f]' : ''}
+        hover:shadow-md hover:border-[#404040] cursor-pointer
       `}
         >
             {children}

@@ -145,7 +145,7 @@ export default function DayTimelineView({ selectedDate, tasks, onCreateTask }: D
     })
 
     return (
-        <div className="h-full flex flex-col bg-white">
+        <div className="h-full flex flex-col bg-[#0b0b0b]">
             {/* Header */}
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-gray-900">{dateStr}</h2>
@@ -235,13 +235,13 @@ export default function DayTimelineView({ selectedDate, tasks, onCreateTask }: D
                         value={newTaskTitle}
                         onChange={(e) => setNewTaskTitle(e.target.value)}
                         placeholder={selectedHour !== null ? `Add task at ${formatHour(selectedHour)}...` : 'Add all-day task...'}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="flex-1 px-3 py-2 border border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] placeholder-[#737373] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0"
                         disabled={isCreating}
                     />
                     <button
                         type="submit"
                         disabled={isCreating || !newTaskTitle.trim()}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="px-4 py-2 bg-[#f5f5f5] text-[#0b0b0b] rounded-lg text-sm font-medium hover:bg-[#e5e5e5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         {isCreating ? 'Adding...' : 'Add'}
                     </button>
@@ -249,7 +249,7 @@ export default function DayTimelineView({ selectedDate, tasks, onCreateTask }: D
                         <button
                             type="button"
                             onClick={() => setSelectedHour(null)}
-                            className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+                            className="px-3 py-2 text-sm text-gray-400 hover:text-gray-100"
                         >
                             Clear
                         </button>
@@ -275,45 +275,45 @@ function TaskCard({
     const timeStr = task.due_at ? extractTimeFromDueAt(task.due_at) : task.start_time
 
     return (
-        <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg hover:border-indigo-300 transition-colors">
+        <div className="p-3 bg-[#1f1f1f] border border-[#262626] rounded-lg hover:border-[#404040] transition-colors">
             <div className="flex items-start gap-3">
                 <input
                     type="checkbox"
                     checked={task.status === 'completed'}
                     onChange={() => onToggle(task.id)}
-                    className="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                    className="mt-1 h-4 w-4 text-[#f5f5f5] border-[#262626] bg-[#0f0f0f] rounded focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0 cursor-pointer"
                 />
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <h3 className={`text-sm font-medium ${task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                        <h3 className={`text-sm font-medium ${task.status === 'completed' ? 'line-through text-gray-500' : 'text-gray-100'}`}>
                             {task.title}
                         </h3>
                         {showTime && timeStr && (
-                            <span className="text-xs text-gray-500 font-medium">
+                            <span className="text-xs text-gray-400 font-medium">
                                 {timeStr}
                             </span>
                         )}
                     </div>
                     {task.description && (
-                        <p className="mt-1 text-xs text-gray-500">{task.description}</p>
+                        <p className="mt-1 text-xs text-gray-400">{task.description}</p>
                     )}
                 </div>
                 <div className="flex items-center gap-1">
                     <Link
                         href={`/dashboard/${task.id}/edit`}
-                        className="p-1 hover:bg-gray-200 rounded transition-colors"
+                        className="p-1 hover:bg-[#161616] rounded transition-colors"
                         title="Edit"
                     >
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                     </Link>
                     <button
                         onClick={() => onDelete(task.id)}
-                        className="p-1 hover:bg-red-100 rounded transition-colors"
+                        className="p-1 hover:bg-[#161616] rounded transition-colors"
                         title="Delete"
                     >
-                        <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                     </button>

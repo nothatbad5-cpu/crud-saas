@@ -30,7 +30,7 @@ export default function PricingPage() {
                     {isBillingConfigured ? (
                         <SubscribeButton />
                     ) : (
-                        <div className="text-yellow-600 bg-yellow-50 p-3 rounded border border-yellow-200">
+                        <div className="text-[#f5f5f5] bg-[#1f1f1f] p-3 rounded border border-[#262626]">
                             Billing is not configured yet.
                         </div>
                     )}

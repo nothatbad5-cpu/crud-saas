@@ -23,13 +23,13 @@ export default async function EditTaskPage({
 
     return (
         <div className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate mb-6">
+            <h2 className="text-2xl font-bold leading-7 text-gray-100 sm:text-3xl sm:truncate mb-6">
                 Edit Task
             </h2>
 
             {resolvedSearchParams?.error && (
-                <div className="mb-4 bg-red-50 p-4 border border-red-200 rounded text-red-600">
-                    {resolvedSearchParams.error}
+                <div className="mb-4 bg-[#1f1f1f] p-4 border border-[#262626] rounded text-[#f5f5f5]">
+                    {typeof resolvedSearchParams.error === 'string' ? resolvedSearchParams.error : String(resolvedSearchParams.error || '')}
                 </div>
             )}
 

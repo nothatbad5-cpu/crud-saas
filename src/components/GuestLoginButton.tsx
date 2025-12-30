@@ -35,7 +35,7 @@ export default function GuestLoginButton() {
             type="button"
             onClick={handleGuestLogin}
             disabled={isLoading}
-            className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center py-2 px-4 border border-[#262626] rounded-md shadow-sm text-sm font-medium text-[#f5f5f5] bg-[#161616] hover:bg-[#1f1f1f] focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
         >
             {isLoading ? 'Signing in...' : 'Continue as Guest'}
         </button>

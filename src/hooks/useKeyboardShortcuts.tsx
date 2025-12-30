@@ -48,13 +48,13 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
 
 export function KeyboardShortcutsHelp({ shortcuts }: { shortcuts: KeyboardShortcut[] }) {
     return (
-        <div className="fixed bottom-4 left-4 bg-white rounded-lg shadow-lg p-4 max-w-xs z-30 border border-gray-200">
-            <h3 className="text-sm font-bold text-gray-900 mb-2">Keyboard Shortcuts</h3>
+        <div className="fixed bottom-4 left-4 bg-[#111] border border-[#262626] rounded-lg shadow-lg p-4 max-w-xs z-30">
+            <h3 className="text-sm font-bold text-gray-100 mb-2">Keyboard Shortcuts</h3>
             <div className="space-y-1">
                 {shortcuts.map((shortcut, index) => (
                     <div key={index} className="flex justify-between items-center text-xs">
-                        <span className="text-gray-600">{shortcut.description}</span>
-                        <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-gray-700 font-mono">
+                        <span className="text-gray-400">{shortcut.description}</span>
+                        <kbd className="px-2 py-1 bg-[#1f1f1f] border border-[#262626] rounded text-gray-100 font-mono">
                             {shortcut.ctrlKey && 'Ctrl+'}
                             {shortcut.shiftKey && 'Shift+'}
                             {shortcut.altKey && 'Alt+'}

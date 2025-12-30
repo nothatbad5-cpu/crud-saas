@@ -64,7 +64,7 @@ export default function FloatingDashboard({ count, limit, isPro = false, onOpenC
                 ref={fabRef}
                 onClick={() => setIsOpen(true)}
                 aria-label="Open dashboard panel"
-                className="fixed bottom-6 right-6 z-40 p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 group"
+                className="fixed bottom-6 right-6 z-40 p-4 bg-[#f5f5f5] text-[#0b0b0b] rounded-full shadow-lg hover:bg-[#e5e5e5] transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0 group"
             >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -72,12 +72,12 @@ export default function FloatingDashboard({ count, limit, isPro = false, onOpenC
 
                 {/* Badge */}
                 {!isPro && remaining !== null && (
-                    <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold border-2 border-white shadow-sm">
+                    <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#1f1f1f] text-[#f5f5f5] text-[10px] font-bold border-2 border-[#0b0b0b] shadow-sm">
                         {remaining}
                     </span>
                 )}
                 {isPro && (
-                    <span className="absolute -top-1 -right-1 flex px-1.5 py-0.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold border-2 border-white shadow-sm uppercase tracking-wider">
+                    <span className="absolute -top-1 -right-1 flex px-1.5 py-0.5 items-center justify-center rounded-full bg-[#1f1f1f] text-[#f5f5f5] text-[8px] font-bold border-2 border-[#0b0b0b] shadow-sm uppercase tracking-wider">
                         Pro
                     </span>
                 )}
@@ -99,16 +99,16 @@ export default function FloatingDashboard({ count, limit, isPro = false, onOpenC
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="quick-panel-title"
-                    className={`fixed top-0 right-0 h-full w-80 max-w-full bg-white shadow-2xl transition-transform duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                    className={`fixed top-0 right-0 h-full w-80 max-w-full bg-[#111] border-l border-[#262626] shadow-2xl transition-transform duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
                 >
                     {/* Header */}
-                    <div className="p-6 border-b flex justify-between items-center">
-                        <h2 id="quick-panel-title" className="text-xl font-bold text-gray-900">Quick Panel</h2>
+                    <div className="p-6 border-b border-[#262626] flex justify-between items-center">
+                        <h2 id="quick-panel-title" className="text-xl font-bold text-gray-100">Quick Panel</h2>
                         <button
                             ref={closeRef}
                             onClick={() => setIsOpen(false)}
                             aria-label="Close panel"
-                            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-2 text-gray-400 hover:text-gray-100 hover:bg-[#161616] rounded-lg transition-colors"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -121,17 +121,17 @@ export default function FloatingDashboard({ count, limit, isPro = false, onOpenC
                         {/* Usage Section */}
                         <div className="space-y-4">
                             <div className="flex justify-between items-end">
-                                <span className="text-sm font-medium text-gray-700 uppercase tracking-wider">Usage</span>
-                                <span className="text-sm font-bold text-indigo-600">
+                                <span className="text-sm font-medium text-gray-400 uppercase tracking-wider">Usage</span>
+                                <span className="text-sm font-bold text-[#f5f5f5]">
                                     {isUnlimited ? '∞' : `${count} / ${limit}`}
                                 </span>
                             </div>
 
                             {!isUnlimited && (
                                 <div className="space-y-2">
-                                    <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                    <div className="w-full bg-[#161616] rounded-full h-2.5 overflow-hidden">
                                         <div
-                                            className={`h-full transition-all duration-500 ${percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-amber-500' : 'bg-indigo-600'}`}
+                                            className="h-full bg-[#a3a3a3] transition-all duration-500"
                                             style={{ width: `${percentage}%` }}
                                         ></div>
                                     </div>
@@ -140,8 +140,8 @@ export default function FloatingDashboard({ count, limit, isPro = false, onOpenC
                                     </p>
 
                                     {count >= limit && !isPro && (
-                                        <div className="p-3 bg-red-50 border border-red-100 rounded-lg">
-                                            <p className="text-xs text-red-700 font-medium">
+                                        <div className="p-3 bg-[#1f1f1f] border border-[#262626] rounded-lg">
+                                            <p className="text-xs text-[#f5f5f5] font-medium">
                                                 🚨 Limit reached! Upgrade for more.
                                             </p>
                                         </div>
@@ -150,8 +150,8 @@ export default function FloatingDashboard({ count, limit, isPro = false, onOpenC
                             )}
 
                             {isPro && (
-                                <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-lg">
-                                    <p className="text-xs text-indigo-700 font-medium flex items-center">
+                                <div className="p-3 bg-[#1f1f1f] border border-[#262626] rounded-lg">
+                                    <p className="text-xs text-[#f5f5f5] font-medium flex items-center">
                                         <span className="mr-2">✨</span> Pro Plan Active
                                     </p>
                                 </div>
@@ -159,14 +159,14 @@ export default function FloatingDashboard({ count, limit, isPro = false, onOpenC
                         </div>
 
                         {/* Quick Actions */}
-                        <div className="space-y-3 pt-4 border-t border-gray-100">
+                        <div className="space-y-3 pt-4 border-t border-[#262626]">
                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Actions</span>
 
                             <button
                                 onClick={handleNewTaskClick}
                                 className={`flex items-center w-full px-4 py-3 rounded-xl shadow-sm text-sm font-medium transition-all ${!isPro && count >= limit
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed grayscale'
-                                    : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-md'
+                                    ? 'bg-[#161616] text-gray-500 cursor-not-allowed grayscale'
+                                    : 'bg-[#f5f5f5] text-[#0b0b0b] hover:bg-[#e5e5e5] hover:shadow-md'
                                     }`}
                             >
                                 <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +178,7 @@ export default function FloatingDashboard({ count, limit, isPro = false, onOpenC
                             <Link
                                 href="/dashboard"
                                 onClick={() => setIsOpen(false)}
-                                className="flex items-center w-full px-4 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-sm font-medium transition-all shadow-sm"
+                                className="flex items-center w-full px-4 py-3 bg-[#161616] border border-[#262626] text-[#f5f5f5] hover:bg-[#1f1f1f] rounded-xl text-sm font-medium transition-all shadow-sm"
                             >
                                 <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -190,9 +190,9 @@ export default function FloatingDashboard({ count, limit, isPro = false, onOpenC
                                 <Link
                                     href="/pricing"
                                     onClick={() => setIsOpen(false)}
-                                    className="flex items-center w-full px-4 py-3 bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 rounded-xl text-sm font-bold transition-all shadow-sm"
+                                    className="flex items-center w-full px-4 py-3 bg-[#1f1f1f] border border-[#262626] text-[#f5f5f5] hover:bg-[#262626] rounded-xl text-sm font-bold transition-all shadow-sm"
                                 >
-                                    <svg className="w-4 h-4 mr-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4 mr-3 text-[#f5f5f5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
                                     Upgrade to Pro

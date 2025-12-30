@@ -16,12 +16,12 @@ export default function TaskTable({ tasks }: { tasks: Task[] }) {
     if (tasks.length === 0) {
         return (
             <div className="text-center py-12">
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No tasks</h3>
-                <p className="mt-1 text-sm text-gray-500">Get started by creating a new task.</p>
+                <h3 className="mt-2 text-sm font-medium text-gray-100">No tasks</h3>
+                <p className="mt-1 text-sm text-gray-400">Get started by creating a new task.</p>
                 <div className="mt-6">
                     <Link
                         href="/dashboard/new"
-                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-[#0b0b0b] bg-[#f5f5f5] hover:bg-[#e5e5e5] focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0"
                     >
                         New Task
                     </Link>
@@ -34,17 +34,17 @@ export default function TaskTable({ tasks }: { tasks: Task[] }) {
         <div className="flex flex-col">
             <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                 <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-                    <div className="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                    <div className="shadow overflow-hidden border-b border-[#262626] sm:rounded-lg">
+                        <table className="min-w-full divide-y divide-[#262626]">
+                            <thead className="bg-[#111]">
                                 <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                         Title
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                         Status
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                         Created At
                                     </th>
                                     <th scope="col" className="relative px-6 py-3">
@@ -52,24 +52,23 @@ export default function TaskTable({ tasks }: { tasks: Task[] }) {
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="bg-[#111] divide-y divide-[#262626]">
                                 {tasks.map((task) => (
-                                    <tr key={task.id}>
+                                    <tr key={task.id} className="hover:bg-[#161616]">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900">{task.title}</div>
-                                            <div className="text-sm text-gray-500">{task.description}</div>
+                                            <div className="text-sm font-medium text-gray-100">{task.title}</div>
+                                            <div className="text-sm text-gray-400">{task.description}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${task.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                                }`}>
+                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#1f1f1f] text-[#e5e5e5] border border-[#262626]">
                                                 {task.status}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                                             {new Date(task.created_at).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <Link href={`/dashboard/${task.id}/edit`} className="text-indigo-600 hover:text-indigo-900 mr-4">
+                                            <Link href={`/dashboard/${task.id}/edit`} className="text-[#f5f5f5] hover:opacity-80 mr-4">
                                                 Edit
                                             </Link>
                                             <button
@@ -78,7 +77,7 @@ export default function TaskTable({ tasks }: { tasks: Task[] }) {
                                                         await deleteTask(task.id)
                                                     }
                                                 }}
-                                                className="text-red-600 hover:text-red-900"
+                                                className="text-[#f5f5f5] hover:opacity-80"
                                             >
                                                 Delete
                                             </button>

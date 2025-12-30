@@ -19,9 +19,11 @@ html, body {
 }
 
 a {
-  color: #a5b4fc;
+  color: #f5f5f5;
+  opacity: 0.85;
 }
 
 a:hover {
-  color: #c7d2fe;
+  opacity: 1;
+  text-decoration: underline;
 }

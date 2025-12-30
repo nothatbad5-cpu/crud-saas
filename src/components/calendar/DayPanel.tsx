@@ -32,7 +32,7 @@ export default function DayPanel({ selectedDate, tasks, onClose }: DayPanelProps
             />
 
             {/* Panel with Timeline View */}
-            <div className="fixed top-0 right-0 h-full w-[600px] max-w-full bg-white shadow-2xl z-50 flex flex-col animate-slide-in">
+            <div className="fixed top-0 right-0 h-full w-[600px] max-w-full bg-[#111] border-l border-[#262626] shadow-2xl z-50 flex flex-col animate-slide-in">
                 {/* Close button */}
                 <button
                     onClick={onClose}

@@ -94,16 +94,16 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
             className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in"
             onClick={handleBackdropClick}
         >
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
+            <div className="bg-[#111] border border-[#262626] rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900">Create Task</h2>
+                <div className="px-6 py-4 border-b border-[#262626] flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-[#f5f5f5]">Create Task</h2>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-[#161616] rounded-lg transition-colors"
                         aria-label="Close modal"
                     >
-                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -113,7 +113,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     {/* Title */}
                     <div>
-                        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="title" className="block text-sm font-medium text-gray-100 mb-1">
                             Title *
                         </label>
                         <input
@@ -122,7 +122,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="Enter task title..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] placeholder-[#737373] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0"
                             required
                             autoFocus
                         />
@@ -130,7 +130,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
 
                     {/* Description */}
                     <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-100 mb-1">
                             Description
                         </label>
                         <textarea
@@ -139,13 +139,13 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Add details..."
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                            className="w-full px-3 py-2 border border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] placeholder-[#737373] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0 resize-none"
                         />
                     </div>
 
                     {/* Due Date */}
                     <div>
-                        <label htmlFor="due_date" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="due_date" className="block text-sm font-medium text-gray-100 mb-1">
                             Due Date
                         </label>
                         <input
@@ -153,13 +153,13 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                             type="date"
                             value={dueDate}
                             onChange={(e) => setDueDate(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0"
                         />
                     </div>
 
                     {/* Time Section */}
-                    <div className="border-t border-gray-200 pt-4">
-                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3 cursor-pointer">
+                    <div className="border-t border-[#262626] pt-4">
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-100 mb-3 cursor-pointer">
                             <input
                                 type="checkbox"
                                 checked={!allDay}
@@ -169,14 +169,14 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                                         setDueTime('09:00')
                                     }
                                 }}
-                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                className="w-4 h-4 text-[#f5f5f5] border-[#262626] bg-[#0f0f0f] rounded focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0"
                             />
                             Schedule at specific time
                         </label>
 
                         {!allDay && (
                             <div>
-                                <label htmlFor="dueTime" className="block text-xs font-medium text-gray-600 mb-1">
+                                <label htmlFor="dueTime" className="block text-xs font-medium text-gray-400 mb-1">
                                     Time
                                 </label>
                                 <input
@@ -184,10 +184,10 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                                     type="time"
                                     value={dueTime}
                                     onChange={(e) => setDueTime(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                    className="w-full px-3 py-2 border border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0 text-sm"
                                     required={!allDay}
                                 />
-                                <p className="mt-1 text-xs text-gray-500">
+                                <p className="mt-1 text-xs text-gray-400">
                                     {allDay ? 'Task will be marked as all-day' : 'Task will be scheduled at this time'}
                                 </p>
                             </div>
@@ -195,10 +195,10 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
 
                         {/* Legacy time inputs (hidden by default, for backwards compatibility) */}
                         <details className="mt-3">
-                            <summary className="text-xs text-gray-500 cursor-pointer">Advanced: Time range</summary>
+                            <summary className="text-xs text-gray-400 cursor-pointer">Advanced: Time range</summary>
                             <div className="mt-2 grid grid-cols-2 gap-3">
                                 <div>
-                                    <label htmlFor="start_time" className="block text-xs font-medium text-gray-600 mb-1">
+                                    <label htmlFor="start_time" className="block text-xs font-medium text-gray-400 mb-1">
                                         Start time
                                     </label>
                                     <input
@@ -209,11 +209,11 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                                             setStartTime(e.target.value)
                                             setShowTimeInputs(true)
                                         }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                        className="w-full px-3 py-2 border border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0 text-sm"
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="end_time" className="block text-xs font-medium text-gray-600 mb-1">
+                                    <label htmlFor="end_time" className="block text-xs font-medium text-gray-400 mb-1">
                                         End time (optional)
                                     </label>
                                     <input
@@ -224,7 +224,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                                             setEndTime(e.target.value)
                                             setShowTimeInputs(true)
                                         }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                        className="w-full px-3 py-2 border border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0 text-sm"
                                     />
                                 </div>
                             </div>
@@ -233,14 +233,14 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
 
                     {/* Status */}
                     <div>
-                        <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="status" className="block text-sm font-medium text-gray-100 mb-1">
                             Status
                         </label>
                         <select
                             id="status"
                             value={status}
                             onChange={(e) => setStatus(e.target.value as 'pending' | 'completed')}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0"
                         >
                             <option value="pending">Pending</option>
                             <option value="completed">Completed</option>
@@ -252,14 +252,14 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                            className="flex-1 px-4 py-2 border border-[#262626] text-[#f5f5f5] rounded-lg font-medium hover:bg-[#161616] transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting || !title.trim()}
-                            className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+                            className="flex-1 px-4 py-2 bg-[#f5f5f5] text-[#0b0b0b] rounded-lg font-medium hover:bg-[#e5e5e5] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0"
                         >
                             {isSubmitting ? 'Creating...' : 'Create Task'}
                         </button>

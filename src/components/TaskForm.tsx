@@ -19,7 +19,7 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
         <button
             type="submit"
             disabled={pending}
-            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-[#0b0b0b] bg-[#f5f5f5] hover:bg-[#e5e5e5] focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0 disabled:opacity-50"
         >
             {pending ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Task' : 'Create Task')}
         </button>
@@ -45,9 +45,9 @@ export default function TaskForm({
     const taskIsAllDay = task?.due_at ? (isAllDayTask(task.due_at) ?? true) : !taskTime
 
     return (
-        <form action={action} className="space-y-6 bg-white p-6 rounded-lg shadow">
+        <form action={action} className="space-y-6 bg-[#111] border border-[#262626] p-6 rounded-lg shadow">
             <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="title" className="block text-sm font-medium text-gray-100">
                     Title
                 </label>
                 <div className="mt-1">
@@ -57,14 +57,14 @@ export default function TaskForm({
                         id="title"
                         required
                         defaultValue={task?.title || ''}
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                        className="shadow-sm focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0 block w-full sm:text-sm border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] placeholder-[#737373] rounded-md p-2"
                         placeholder="Buy groceries"
                     />
                 </div>
             </div>
 
             <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="description" className="block text-sm font-medium text-gray-100">
                     Description
                 </label>
                 <div className="mt-1">
@@ -73,7 +73,7 @@ export default function TaskForm({
                         name="description"
                         rows={3}
                         defaultValue={task?.description || ''}
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                        className="shadow-sm focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0 block w-full sm:text-sm border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] placeholder-[#737373] rounded-md p-2"
                         placeholder="Milk, Bread, Eggs"
                     />
                 </div>
@@ -81,7 +81,7 @@ export default function TaskForm({
 
             {/* Due Date */}
             <div>
-                <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="dueDate" className="block text-sm font-medium text-gray-100">
                     Due Date
                 </label>
                 <div className="mt-1">
@@ -90,27 +90,27 @@ export default function TaskForm({
                         name="dueDate"
                         id="dueDate"
                         defaultValue={taskDate}
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                        className="shadow-sm focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0 block w-full sm:text-sm border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] rounded-md p-2"
                     />
                 </div>
             </div>
 
             {/* Time Section */}
-            <div className="border-t border-gray-200 pt-4">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3 cursor-pointer">
+            <div className="border-t border-[#262626] pt-4">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-100 mb-3 cursor-pointer">
                     <input
                         type="checkbox"
                         name="allDay"
                         id="allDay"
                         defaultChecked={taskIsAllDay}
-                        className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        className="w-4 h-4 text-[#f5f5f5] border-[#262626] bg-[#0f0f0f] rounded focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0"
                     />
                     All day
                 </label>
 
                 {!taskIsAllDay && (
                     <div>
-                        <label htmlFor="dueTime" className="block text-xs font-medium text-gray-600 mb-1">
+                        <label htmlFor="dueTime" className="block text-xs font-medium text-gray-400 mb-1">
                             Time
                         </label>
                         <input
@@ -118,14 +118,14 @@ export default function TaskForm({
                             name="dueTime"
                             id="dueTime"
                             defaultValue={taskTime || '09:00'}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                            className="w-full px-3 py-2 border border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0 text-sm"
                         />
                     </div>
                 )}
             </div>
 
             <div>
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="status" className="block text-sm font-medium text-gray-100">
                     Status
                 </label>
                 <div className="mt-1">
@@ -133,7 +133,7 @@ export default function TaskForm({
                         id="status"
                         name="status"
                         defaultValue={task?.status || 'pending'}
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 border"
+                        className="shadow-sm focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0 block w-full sm:text-sm border-[#262626] bg-[#0f0f0f] text-[#f5f5f5] rounded-md p-2"
                     >
                         <option value="pending">Pending</option>
                         <option value="completed">Completed</option>

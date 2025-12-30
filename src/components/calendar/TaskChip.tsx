@@ -13,8 +13,8 @@ interface TaskChipProps {
 
 export default function TaskChip({ title, status, startTime, dueAt, onClick }: TaskChipProps) {
     const statusColors = {
-        pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-        completed: 'bg-green-100 text-green-800 border-green-200'
+        pending: 'bg-[#1f1f1f] text-[#e5e5e5] border-[#262626]',
+        completed: 'bg-[#1f1f1f] text-[#e5e5e5] border-[#262626]'
     }
 
     // Prefer due_at for time badge, fallback to startTime

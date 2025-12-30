@@ -29,7 +29,7 @@ export default function SubscribeButton() {
         <button
             onClick={handleSubscribe}
             disabled={loading}
-            className="w-full bg-indigo-600 border border-transparent rounded-md py-3 px-8 flex items-center justify-center text-base font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="w-full bg-[#f5f5f5] border border-transparent rounded-md py-3 px-8 flex items-center justify-center text-base font-medium text-[#0b0b0b] hover:bg-[#e5e5e5] disabled:opacity-50"
         >
             {loading ? 'Processing...' : 'Subscribe'}
         </button>

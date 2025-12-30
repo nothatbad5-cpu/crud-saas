@@ -29,7 +29,7 @@ export default function ManageSubscriptionButton() {
         <button
             onClick={handlePortal}
             disabled={loading}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2 border border-[#262626] shadow-sm text-sm font-medium rounded-md text-[#f5f5f5] bg-[#161616] hover:bg-[#1f1f1f] focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0 disabled:opacity-50"
         >
             {loading ? 'Loading...' : 'Manage Subscription'}
         </button>

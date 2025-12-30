@@ -16,7 +16,7 @@ export default function Navbar() {
                     <div className="flex items-center">
                         <button
                             onClick={() => signOut()}
-                            className="ml-4 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            className="ml-4 px-4 py-2 border border-[#262626] rounded-md shadow-sm text-sm font-medium text-[#0b0b0b] bg-[#f5f5f5] hover:bg-[#e5e5e5] focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0"
                         >
                             Sign out
                         </button>

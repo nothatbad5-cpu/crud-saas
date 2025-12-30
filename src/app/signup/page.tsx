@@ -21,7 +21,7 @@ export default async function SignupPage(props: { searchParams: { error?: string
                                 type="email"
                                 autoComplete="email"
                                 required
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 bg-[#161616] placeholder-gray-500 text-gray-100 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-[#262626] bg-[#0f0f0f] placeholder-[#737373] text-[#f5f5f5] rounded-t-md focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0 focus:z-10 sm:text-sm"
                                 placeholder="Email address"
                             />
                         </div>
@@ -33,27 +33,27 @@ export default async function SignupPage(props: { searchParams: { error?: string
                                 type="password"
                                 autoComplete="new-password"
                                 required
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 bg-[#161616] placeholder-gray-500 text-gray-100 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-[#262626] bg-[#0f0f0f] placeholder-[#737373] text-[#f5f5f5] rounded-b-md focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:border-[#a3a3a3] focus:ring-offset-0 focus:z-10 sm:text-sm"
                                 placeholder="Password"
                             />
                         </div>
                     </div>
 
                     {searchParams?.error && (
-                        <div className="text-red-500 text-sm text-center">{searchParams.error}</div>
+                        <div className="text-[#f5f5f5] text-sm text-center">{typeof searchParams?.error === 'string' ? searchParams.error : String(searchParams?.error || '')}</div>
                     )}
 
                     <div>
                         <button
                             type="submit"
                             formAction={signup}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-[#0b0b0b] bg-[#f5f5f5] hover:bg-[#e5e5e5] focus:outline-none focus:ring-2 focus:ring-[#a3a3a3] focus:ring-offset-0"
                         >
                             Sign up
                         </button>
                     </div>
                     <div className="text-center text-sm">
-                        <a href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                        <a href="/login" className="font-medium text-[#f5f5f5] hover:opacity-80">
                             Already have an account? Sign in
                         </a>
                     </div>

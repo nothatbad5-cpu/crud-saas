@@ -11,14 +11,14 @@ interface ViewToggleProps {
 
 export default function ViewToggle({ currentView, onViewChange }: ViewToggleProps) {
     return (
-        <div className="inline-flex items-center bg-gray-100 rounded-lg p-1">
+        <div className="inline-flex items-center bg-[#161616] border border-[#262626] rounded-lg p-1">
             <button
                 onClick={() => onViewChange('table')}
                 className={`
           px-4 py-2 rounded-md text-sm font-medium transition-all
           ${currentView === 'table'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'bg-[#1f1f1f] text-gray-100 shadow-sm'
+                        : 'text-gray-400 hover:text-gray-100'
                     }
         `}
             >
@@ -34,8 +34,8 @@ export default function ViewToggle({ currentView, onViewChange }: ViewToggleProp
                 className={`
           px-4 py-2 rounded-md text-sm font-medium transition-all
           ${currentView === 'calendar'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'bg-[#1f1f1f] text-gray-100 shadow-sm'
+                        : 'text-gray-400 hover:text-gray-100'
                     }
         `}
             >
