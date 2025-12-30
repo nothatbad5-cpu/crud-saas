@@ -5,7 +5,9 @@ import TaskTable from '@/components/TaskTable'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import ViewToggle from '@/components/ViewToggle'
 import CreateTaskModal from '@/components/modals/CreateTaskModal'
+import AICommandBar from '@/components/AICommandBar'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useRouter } from 'next/navigation'
 
 interface DashboardClientProps {
     tasks: any[]
@@ -16,6 +18,7 @@ interface DashboardClientProps {
 export default function DashboardClient({ tasks, stats, error }: DashboardClientProps) {
     const [view, setView] = useState<'table' | 'calendar'>('table')
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+    const router = useRouter()
 
     // Keyboard shortcuts
     useKeyboardShortcuts([
@@ -48,6 +51,9 @@ export default function DashboardClient({ tasks, stats, error }: DashboardClient
                     </div>
                 </div>
             )}
+
+            {/* AI Command Bar */}
+            <AICommandBar onSuccess={() => router.refresh()} />
 
             {/* Header with View Toggle - Mobile Stacked */}
             <div className="mb-3 md:mb-6">
