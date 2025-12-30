@@ -31,14 +31,18 @@ export async function parseWithOpenAI(input: string): Promise<{
 CRITICAL RULES:
 1. Output ONLY valid JSON matching this exact schema. No markdown, no code blocks, no explanations.
 2. Default to CREATE action if the command doesn't explicitly say delete/rename/mark/update.
-3. Extract dates and times from natural language (e.g., "tomorrow", "2nd jan 2026 at 3pm", "next friday").
+3. ALWAYS extract dates and times from natural language. Examples:
+   - "ride to toronto on 3rd jan 2026" → dueDate: "2026-01-03T00:00:00Z"
+   - "meeting on 2nd jan 2026 at 3pm" → dueDate: "2026-01-02T15:00:00Z"
+   - "tomorrow 7pm" → dueDate: tomorrow's date at 19:00 UTC
+   - "next friday" → dueDate: next Friday at 00:00 UTC
 4. For delete/bulk_delete_all: set requiresConfirm=true.
 5. For ambiguous matches (multiple tasks could match): set requiresConfirm=true and return noop with reason.
 6. If command is unclear, return noop with helpful reason.
 
 ACTION SCHEMA:
-- create: { type:"create", title:string (1-120 chars), description?:string, status?:"pending"|"completed", dueDate?:string (ISO format) }
-- update: { type:"update", match:{ id?:string, title?:string }, patch:{ title?:string, description?:string, status?:"pending"|"completed", dueDate?:string|null } }
+- create: { type:"create", title:string (1-120 chars), description?:string, status?:"pending"|"completed", dueDate?:string (ISO 8601 format, e.g. "2026-01-03T00:00:00Z" or "2026-01-02T15:00:00Z") }
+- update: { type:"update", match:{ id?:string, title?:string }, patch:{ title?:string, description?:string, status?:"pending"|"completed", dueDate?:string|null (ISO 8601) } }
 - delete: { type:"delete", match:{ id?:string, title?:string }, limit?:number }
 - bulk_delete_all: { type:"bulk_delete_all" }
 - noop: { type:"noop", reason:string }
@@ -52,6 +56,7 @@ OUTPUT FORMAT (JSON only):
 
 EXAMPLES:
 Input: "buy milk" → { "actions": [{"type":"create","title":"buy milk"}], "preview": "Create task: buy milk", "requiresConfirm": false }
+Input: "ride to toronto on 3rd jan 2026" → { "actions": [{"type":"create","title":"ride to toronto","dueDate":"2026-01-03T00:00:00Z"}], "preview": "Create task: ride to toronto (due: 2026-01-03)", "requiresConfirm": false }
 Input: "ride to toronto on 2nd jan 2026 at 3pm" → { "actions": [{"type":"create","title":"ride to toronto","dueDate":"2026-01-02T15:00:00Z"}], "preview": "Create task: ride to toronto (due: 2026-01-02 3pm)", "requiresConfirm": false }
 Input: "mark buy milk complete" → { "actions": [{"type":"update","match":{"title":"buy milk"},"patch":{"status":"completed"}}], "preview": "Mark 'buy milk' as complete", "requiresConfirm": false }
 Input: "delete buy milk" → { "actions": [{"type":"delete","match":{"title":"buy milk"}}], "preview": "Delete task matching: buy milk", "requiresConfirm": true }

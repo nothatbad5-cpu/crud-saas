@@ -5,6 +5,7 @@ import { parseCommand } from '@/lib/ai-command/parser'
 import { parseWithOpenAI } from '@/lib/ai/openaiTaskParser'
 import { storePendingActions } from '@/lib/ai/confirmTokenStore'
 import { computeRequiresConfirm, checkAmbiguousDeletes } from '@/lib/ai/confirm'
+import { extractDueDate } from '@/lib/ai/dateExtractor'
 import { executeActions } from '@/lib/ai-command/executor'
 import { revalidatePath } from 'next/cache'
 import crypto from 'crypto'
@@ -35,6 +36,9 @@ export async function POST(request: NextRequest) {
             )
         }
         
+        // Extract date from input (fallback if AI misses it)
+        const extractedDate = extractDueDate(input)
+        
         // Try OpenAI first (if configured)
         let actions: any[] = []
         let preview = ''
@@ -60,6 +64,24 @@ export async function POST(request: NextRequest) {
             preview = parsed.preview
             // IGNORE parsed.requiresConfirm - we compute it server-side
         }
+        
+        // Fill in missing dueDate from extracted date (for create actions)
+        for (const action of actions) {
+            if (action.type === 'create' && !action.dueDate && extractedDate.dueDateISO) {
+                action.dueDate = extractedDate.dueDateISO
+                // Update title if it was cleaned
+                if (extractedDate.title && extractedDate.title !== input.trim()) {
+                    action.title = extractedDate.title
+                }
+            }
+        }
+        
+        // Temporary logging for verification
+        console.log({
+            input,
+            extractedDate,
+            aiActions: actions,
+        })
         
         // Validate actions with Zod
         const validatedActions = []

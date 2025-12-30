@@ -41,12 +41,24 @@ export async function executeActions(userId: string, actions: Action[]): Promise
             let due_date: string | null = null
             
             if (action.dueDate) {
-                // Try to parse as ISO date first
-                if (/^\d{4}-\d{2}-\d{2}$/.test(action.dueDate)) {
+                // Check if it's already an ISO string (from AI or dateExtractor)
+                if (action.dueDate.includes('T') || action.dueDate.includes('Z')) {
+                    // Already ISO format (e.g., "2026-01-03T00:00:00Z" or "2026-01-03T15:00:00Z")
+                    try {
+                        const date = new Date(action.dueDate)
+                        if (!isNaN(date.getTime())) {
+                            due_at = date.toISOString()
+                            due_date = extractDateFromDueAt(due_at)
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse ISO date:', action.dueDate, e)
+                    }
+                } else if (/^\d{4}-\d{2}-\d{2}$/.test(action.dueDate)) {
+                    // YYYY-MM-DD format
                     due_at = combineDateTimeToISO(action.dueDate, null, true)
                     due_date = action.dueDate
                 } else {
-                    // Try to parse natural language dates
+                    // Try to parse natural language dates (fallback)
                     const lower = action.dueDate.toLowerCase()
                     const today = new Date()
                     let targetDate = new Date(today)
@@ -152,12 +164,24 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                     updateData.due_date = null
                     updateData.due_at = null
                 } else {
-                    // Parse date
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(action.patch.dueDate)) {
+                    // Check if it's already an ISO string
+                    if (action.patch.dueDate.includes('T') || action.patch.dueDate.includes('Z')) {
+                        // Already ISO format
+                        try {
+                            const date = new Date(action.patch.dueDate)
+                            if (!isNaN(date.getTime())) {
+                                updateData.due_at = date.toISOString()
+                                updateData.due_date = extractDateFromDueAt(updateData.due_at)
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse ISO date:', action.patch.dueDate, e)
+                        }
+                    } else if (/^\d{4}-\d{2}-\d{2}$/.test(action.patch.dueDate)) {
+                        // YYYY-MM-DD format
                         updateData.due_at = combineDateTimeToISO(action.patch.dueDate, null, true)
                         updateData.due_date = action.patch.dueDate
                     } else {
-                        // Try to parse natural language dates
+                        // Try to parse natural language dates (fallback)
                         const lower = action.patch.dueDate.toLowerCase()
                         const today = new Date()
                         let targetDate = new Date(today)
