@@ -139,16 +139,36 @@ export async function toggleTaskStatus(taskId: string) {
             return { error: 'Unauthorized' }
         }
 
+        // Validate taskId is a valid UUID format
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        if (!uuidRegex.test(taskId)) {
+            console.error('Invalid task ID format:', taskId)
+            return { error: 'Invalid task ID' }
+        }
+
         // Get current task with all fields including recurrence
+        // Use real DB UUID - ensure taskId is the actual primary key
         const { data: task, error: selectError } = await supabase
             .from('tasks')
-            .select('status, recurrence_rule, recurrence_timezone, due_at, title, description, user_id')
+            .select('id, status, recurrence_rule, recurrence_timezone, due_at, title, description, user_id')
             .eq('id', taskId)
             .eq('user_id', user.id)
             .single()
 
-        if (selectError || !task) {
+        if (selectError) {
+            console.error('Error fetching task:', selectError)
+            return { error: selectError.message || 'Task not found' }
+        }
+
+        if (!task) {
+            console.error('Task not found for ID:', taskId, 'User:', user.id)
             return { error: 'Task not found' }
+        }
+
+        // Double-check the task belongs to the user
+        if (task.user_id !== user.id) {
+            console.error('Task ownership mismatch:', task.user_id, 'vs', user.id)
+            return { error: 'Unauthorized' }
         }
 
         const newStatus = task.status === 'completed' ? 'pending' : 'completed'

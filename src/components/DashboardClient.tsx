@@ -49,11 +49,12 @@ export default function DashboardClient({ tasks, upcomingGroups, completedTasks,
         }
     ])
 
-    // Calculate bottom padding to account for shortcuts panel (72px mobile, 56px desktop) + FAB + safe area
-    // Mobile: shortcuts hidden, FAB visible = ~80px
-    // Desktop: shortcuts ~56px + FAB ~64px = ~120px
+    // Calculate bottom padding to account for shortcuts panel + FAB + safe area
+    // Mobile: FAB visible = ~80px, Desktop: shortcuts ~56px + FAB ~64px = ~120px
+    // Add extra padding to ensure last task is fully visible and clickable
+    // Use both Tailwind class and inline style for maximum compatibility
     return (
-        <div className="w-full min-h-full relative pb-[calc(env(safe-area-inset-bottom)+140px)] md:pb-[calc(env(safe-area-inset-bottom)+160px)]">
+        <div className="w-full min-h-full relative" style={{ paddingBottom: 'max(140px, calc(env(safe-area-inset-bottom) + 140px))' }}>
             {/* Error Banner */}
             {error && (
                 <div className="bg-[#1f1f1f] border-l-4 border-[#262626] p-4 mb-6">
@@ -137,7 +138,7 @@ export default function DashboardClient({ tasks, upcomingGroups, completedTasks,
             />
 
             {/* Keyboard Shortcuts Hint - Hidden on mobile, fixed position to not block scroll */}
-            <div className="hidden md:block fixed bottom-4 left-4 bg-[#111]/90 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2 text-xs text-gray-400 border border-[#262626] z-30 pointer-events-auto" style={{ bottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+            <div className="hidden md:block fixed bottom-4 left-4 bg-[#111]/90 backdrop-blur-sm rounded-lg shadow-lg px-3 py-2 text-xs text-gray-400 border border-[#262626] z-30 pointer-events-auto" style={{ bottom: 'calc(16px + env(safe-area-inset-bottom))', pointerEvents: 'auto' }}>
                 <span className="font-semibold">Shortcuts:</span> <kbd className="px-1.5 py-0.5 bg-[#1f1f1f] border border-[#262626] rounded">N</kbd> New Task · <kbd className="px-1.5 py-0.5 bg-[#1f1f1f] border border-[#262626] rounded">T</kbd> Toggle View
             </div>
         </div>

@@ -162,6 +162,12 @@ export default function UpcomingTasks({ groups: initialGroups }: UpcomingTasksPr
                     {/* Tasks for this day */}
                     <div className="space-y-2">
                         {group.tasks.map((task) => {
+                            // Ensure we have a valid UUID - log if not
+                            if (!task.id || typeof task.id !== 'string') {
+                                console.error('Invalid task ID in UpcomingTasks:', task)
+                                return null
+                            }
+
                             // Format due date and time in readable format
                             let dueDateStr: string | null = null
                             let dueTimeStr: string | null = null
@@ -205,7 +211,14 @@ export default function UpcomingTasks({ groups: initialGroups }: UpcomingTasksPr
                                     {/* Right: Done button */}
                                     <div className="flex items-center gap-3 flex-shrink-0">
                                         <button
-                                            onClick={() => handleDone(task.id)}
+                                            onClick={() => {
+                                                // Double-check we have a valid UUID before calling
+                                                if (task.id && typeof task.id === 'string') {
+                                                    handleDone(task.id)
+                                                } else {
+                                                    console.error('Cannot complete task - invalid ID:', task)
+                                                }
+                                            }}
                                             disabled={completingIds.has(task.id)}
                                             className="px-3 py-1.5 text-xs font-medium text-[#0b0b0b] bg-[#f5f5f5] hover:bg-[#e5e5e5] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
@@ -214,7 +227,7 @@ export default function UpcomingTasks({ groups: initialGroups }: UpcomingTasksPr
                                     </div>
                                 </div>
                             )
-                        })}
+                        }).filter(Boolean)}
                     </div>
                 </div>
             ))}
