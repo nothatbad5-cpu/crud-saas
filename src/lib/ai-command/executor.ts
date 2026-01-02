@@ -106,15 +106,35 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                 insertData.recurrence_timezone = action.recurrenceTimezone || 'UTC'
             }
 
-            // Insert and verify the task was actually created
+            // Insert and verify the task was actually created - MUST return full row
             const { data: insertedTask, error } = await supabase
                 .from('tasks')
                 .insert(insertData)
-                .select('id, title, due_at')
+                .select('id, title, due_at, due_date, created_at, status, user_id')
                 .single()
             
-            if (error || !insertedTask) {
-                const errorMsg = error?.message || 'Task was not created'
+            // HARD PROOF: Must have insertedTask with id
+            if (error || !insertedTask || !insertedTask.id) {
+                const errorMsg = error?.message || 'Insert returned no row'
+                console.error('Insert failed:', { error, insertedTask, insertData })
+                results.push({
+                    type: 'create',
+                    ok: false,
+                    title: action.title,
+                    error: errorMsg
+                })
+                return {
+                    success: false,
+                    message: `Failed to create task: ${errorMsg}`,
+                    affectedCount: totalAffected,
+                    results
+                }
+            }
+            
+            // Verify user_id matches (RLS safety check)
+            if (insertedTask.user_id !== userId) {
+                const errorMsg = 'Inserted task user_id mismatch - RLS violation'
+                console.error('RLS violation:', { insertedTask, userId })
                 results.push({
                     type: 'create',
                     ok: false,

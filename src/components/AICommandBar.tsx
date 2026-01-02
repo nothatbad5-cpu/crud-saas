@@ -41,18 +41,33 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
                 return
             }
 
-            // If no confirmation needed, verify actual success
+            // If no confirmation needed, verify actual success with HARD PROOF
             if (!data.requiresConfirm) {
-                // Only show success if ok=true AND we have actual results
-                const hasCreatedTasks = data.results?.some((r: any) => r.type === 'create' && r.ok && r.id)
-                const hasUpdatedTasks = data.results?.some((r: any) => r.type === 'update' && r.ok && r.id)
-                const hasDeletedTasks = data.results?.some((r: any) => r.type === 'delete' && r.ok && r.id)
-                const actuallySucceeded = data.ok === true && (hasCreatedTasks || hasUpdatedTasks || hasDeletedTasks || data.actionsApplied > 0)
+                // Check response.ok first
+                if (!response.ok || data.ok !== true) {
+                    setExecutionResult({
+                        success: false,
+                        message: data.error || 'Failed to execute command',
+                    })
+                    return
+                }
+                
+                // HARD PROOF: Must have actual created/updated/deleted IDs
+                const hasCreated = data.created && data.created.length > 0 && data.created[0].id
+                const hasUpdated = data.updated && data.updated.length > 0 && data.updated[0].id
+                const hasDeleted = data.deleted && data.deleted.length > 0 && data.deleted[0].id
+                const actuallySucceeded = hasCreated || hasUpdated || hasDeleted
                 
                 if (actuallySucceeded) {
+                    // Build success message with actual task info
+                    let successMsg = data.resultMessage || 'Command executed successfully'
+                    if (hasCreated) {
+                        successMsg = `Created task: "${data.created[0].title}" (ID: ${data.created[0].id.substring(0, 8)}...)`
+                    }
+                    
                     setExecutionResult({
                         success: true,
-                        message: data.resultMessage || data.message || 'Command executed successfully',
+                        message: successMsg + (data.requestId ? ` [${data.requestId.substring(0, 8)}...]` : ''),
                     })
                     // Clear input and refresh
                     setInput('')
@@ -63,10 +78,10 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
                         router.refresh()
                     }
                 } else {
-                    // Show error - task was not actually created
+                    // Show error - no actual IDs returned
                     setExecutionResult({
                         success: false,
-                        message: data.error || data.resultMessage || 'Failed to execute command. Task may not have been created.',
+                        message: data.error || 'Task was not created. No ID returned from server.',
                     })
                 }
                 return
@@ -119,17 +134,25 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
                 return
             }
 
-            // Verify actual success
-            const hasCreatedTasks = data.results?.some((r: any) => r.type === 'create' && r.ok && r.id)
-            const hasUpdatedTasks = data.results?.some((r: any) => r.type === 'update' && r.ok && r.id)
-            const hasDeletedTasks = data.results?.some((r: any) => r.type === 'delete' && r.ok && r.id)
-            const actuallySucceeded = data.ok === true && (hasCreatedTasks || hasUpdatedTasks || hasDeletedTasks || data.actionsApplied > 0)
+            // Verify actual success with HARD PROOF
+            if (!response.ok || data.ok !== true) {
+                setExecutionResult({
+                    success: false,
+                    message: data.error || 'Failed to execute command',
+                })
+                return
+            }
+            
+            const hasCreated = data.created && data.created.length > 0 && data.created[0].id
+            const hasUpdated = data.updated && data.updated.length > 0 && data.updated[0].id
+            const hasDeleted = data.deleted && data.deleted.length > 0 && data.deleted[0].id
+            const actuallySucceeded = hasCreated || hasUpdated || hasDeleted
             
             setExecutionResult({
                 success: actuallySucceeded,
                 message: actuallySucceeded 
-                    ? (data.resultMessage || data.message || 'Command executed successfully')
-                    : (data.error || data.resultMessage || 'Failed to execute command'),
+                    ? (data.resultMessage || 'Command executed successfully')
+                    : (data.error || 'Task was not created. No ID returned from server.'),
             })
 
             // Clear input and result on success

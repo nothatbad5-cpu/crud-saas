@@ -10,25 +10,39 @@ import { findTaskByTitle, normalizeTitle } from '@/lib/ai/taskMatcher'
 import { executeActions } from '@/lib/ai-command/executor'
 import { revalidatePath } from 'next/cache'
 import crypto from 'crypto'
+import { randomUUID } from 'crypto'
 
 /**
  * POST /api/ai/task-command
  * Parse natural language command and return actions (with optional confirmation)
  */
 export async function POST(request: NextRequest) {
+    // Generate correlation ID for production debugging
+    const requestId = randomUUID()
+    
     try {
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         
+        // STRICT AUTH CHECK - return 401 if no user
         if (authError || !user) {
+            console.error(`[${requestId}] Auth failed:`, authError?.message || 'No user')
             return NextResponse.json(
-                { error: 'Unauthorized. Please sign in.' },
+                { 
+                    ok: false,
+                    error: 'Not authenticated. Please sign in.',
+                    requestId 
+                },
                 { status: 401 }
             )
         }
         
+        console.log(`[${requestId}] User authenticated:`, user.id)
+        
         const body = await request.json()
         const { input } = body
+        
+        console.log(`[${requestId}] Input:`, input)
         
         if (!input || typeof input !== 'string' || !input.trim()) {
             return NextResponse.json(
@@ -164,21 +178,52 @@ export async function POST(request: NextRequest) {
         
         // If no confirmation needed, execute immediately
         if (!requiresConfirm) {
+            console.log(`[${requestId}] Executing ${validatedActions.length} actions`)
             const result = await executeActions(user.id, validatedActions)
+            
+            // Log each action result
+            for (const actionResult of result.results) {
+                console.log(`[${requestId}] Action ${actionResult.type}: ok=${actionResult.ok}, id=${actionResult.id || 'none'}, error=${actionResult.error || 'none'}`)
+            }
             
             // Only revalidate if execution succeeded
             if (result.success) {
                 revalidatePath('/dashboard')
+                console.log(`[${requestId}] Revalidated /dashboard`)
             }
             
-            // Return detailed results
+            // Separate results by type for easier frontend consumption
+            const created = result.results.filter(r => r.type === 'create' && r.ok && r.id).map(r => ({
+                id: r.id!,
+                title: r.title!,
+                due_at: r.due_at || null,
+                due_date: r.due_at ? r.due_at.split('T')[0] : null
+            }))
+            
+            const updated = result.results.filter(r => r.type === 'update' && r.ok && r.id).map(r => ({
+                id: r.id!,
+                title: r.title!,
+                due_at: r.due_at || null,
+                due_date: r.due_at ? r.due_at.split('T')[0] : null
+            }))
+            
+            const deleted = result.results.filter(r => r.type === 'delete' && r.ok && r.id).map(r => ({
+                id: r.id!,
+                title: r.title!
+            }))
+            
+            // Return structured response with requestId for debugging
             return NextResponse.json({
+                requestId,
                 ok: result.success,
                 preview,
                 requiresConfirm: false,
                 resultMessage: result.message,
                 actionsApplied: result.affectedCount,
-                results: result.results,
+                created,
+                updated,
+                deleted,
+                results: result.results, // Keep for backward compatibility
                 error: result.success ? undefined : result.message,
             })
         }
@@ -187,16 +232,24 @@ export async function POST(request: NextRequest) {
         const confirmToken = crypto.randomBytes(32).toString('hex')
         storePendingActions(confirmToken, user.id, validatedActions, preview)
         
+        console.log(`[${requestId}] Confirmation required, token: ${confirmToken.substring(0, 8)}...`)
+        
         return NextResponse.json({
+            requestId,
             preview,
             requiresConfirm: true,
             confirmToken,
             actions: validatedActions, // Include for reference (not executed yet)
         })
     } catch (error: any) {
-        console.error('Error in task-command API:', error)
+        console.error(`[${requestId}] Error in task-command API:`, error)
         return NextResponse.json(
-            { error: error.message || 'An unexpected error occurred' },
+            { 
+                requestId,
+                ok: false,
+                error: error.message || 'An unexpected error occurred',
+                debug: process.env.NODE_ENV === 'development' ? { stack: error.stack } : undefined
+            },
             { status: 500 }
         )
     }

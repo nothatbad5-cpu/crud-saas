@@ -4,22 +4,32 @@ import { ActionSchema } from '@/lib/ai-command/schema'
 import { executeActions } from '@/lib/ai-command/executor'
 import { getPendingActions } from '@/lib/ai/confirmTokenStore'
 import { revalidatePath } from 'next/cache'
+import { randomUUID } from 'crypto'
 
 /**
  * POST /api/ai/task-command/confirm
  * Execute confirmed actions
  */
 export async function POST(request: NextRequest) {
+    const requestId = randomUUID()
+    
     try {
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         
         if (authError || !user) {
+            console.error(`[${requestId}] Auth failed:`, authError?.message || 'No user')
             return NextResponse.json(
-                { error: 'Unauthorized. Please sign in.' },
+                { 
+                    ok: false,
+                    error: 'Not authenticated. Please sign in.',
+                    requestId 
+                },
                 { status: 401 }
             )
         }
+        
+        console.log(`[${requestId}] User authenticated:`, user.id)
         
         const body = await request.json()
         const { confirmToken } = body
@@ -55,20 +65,51 @@ export async function POST(request: NextRequest) {
         }
         
         // Execute actions
+        console.log(`[${requestId}] Executing ${validatedActions.length} confirmed actions`)
         const result = await executeActions(user.id, validatedActions)
+        
+        // Log each action result
+        for (const actionResult of result.results) {
+            console.log(`[${requestId}] Action ${actionResult.type}: ok=${actionResult.ok}, id=${actionResult.id || 'none'}, error=${actionResult.error || 'none'}`)
+        }
         
         // Only revalidate if execution succeeded
         if (result.success) {
             revalidatePath('/dashboard')
+            console.log(`[${requestId}] Revalidated /dashboard`)
         }
         
+        // Separate results by type
+        const created = result.results.filter(r => r.type === 'create' && r.ok && r.id).map(r => ({
+            id: r.id!,
+            title: r.title!,
+            due_at: r.due_at || null,
+            due_date: r.due_at ? r.due_at.split('T')[0] : null
+        }))
+        
+        const updated = result.results.filter(r => r.type === 'update' && r.ok && r.id).map(r => ({
+            id: r.id!,
+            title: r.title!,
+            due_at: r.due_at || null,
+            due_date: r.due_at ? r.due_at.split('T')[0] : null
+        }))
+        
+        const deleted = result.results.filter(r => r.type === 'delete' && r.ok && r.id).map(r => ({
+            id: r.id!,
+            title: r.title!
+        }))
+        
         return NextResponse.json({
+            requestId,
             ok: result.success,
             resultMessage: result.message,
             preview: pendingData.preview,
             requiresConfirm: false,
             success: result.success,
             actionsApplied: result.affectedCount,
+            created,
+            updated,
+            deleted,
             results: result.results,
             error: result.success ? undefined : result.message,
         })
