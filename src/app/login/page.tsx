@@ -1,5 +1,4 @@
 import { login } from '@/app/auth/actions'
-import GuestLoginButton from '@/components/GuestLoginButton'
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -52,17 +51,6 @@ export default async function LoginPage(props: { searchParams: { error?: string 
                         >
                             Sign in
                         </button>
-                    </div>
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-300" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-[#111] text-gray-400">Or</span>
-                        </div>
-                    </div>
-                    <div>
-                        <GuestLoginButton />
                     </div>
                     <div className="text-center text-sm">
                         <a href="/signup" className="font-medium text-[#f5f5f5] hover:opacity-80">

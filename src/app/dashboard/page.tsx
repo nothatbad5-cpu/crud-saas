@@ -5,7 +5,6 @@ import DashboardClient from '@/components/DashboardClient'
 import { redirect } from 'next/navigation'
 import { dayLabel, startOfDayKey, formatDateISO } from '@/lib/date'
 import { analyzeCompletedTasks } from '@/lib/ai-suggestions'
-import { cookies } from 'next/headers'
 
 export default async function DashboardPage(props: { searchParams: { error?: string } }) {
     try {
@@ -13,51 +12,26 @@ export default async function DashboardPage(props: { searchParams: { error?: str
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-        // Get guest_id from cookie if no authenticated user
-        const cookieStore = await cookies()
-        const guestId = cookieStore.get('guest_id')?.value
-
-        // If no user and no guest_id, redirect to login
-        if ((authError || !user) && !guestId) {
+        // STRICT AUTH: Must have authenticated user
+        if (authError || !user) {
             redirect('/login')
         }
 
-        // Determine identity: use user.id if authenticated, else guest_id
-        const identityId = user?.id || guestId
-        const isGuest = !user && !!guestId
-
-        if (!identityId) {
-            redirect('/login')
+        // Phase 3: Seed logic (Idempotent) - non-critical, continue on error
+        try {
+            await seedSampleTasks(user.id)
+        } catch (error) {
+            console.error('Failed to seed sample tasks:', error)
+            // Continue - non-critical operation
         }
 
-        // Phase 3: Seed logic (Idempotent) - non-critical, continue on error (only for authenticated users)
-        if (user && !isGuest) {
-            try {
-                await seedSampleTasks(user.id)
-            } catch (error) {
-                console.error('Failed to seed sample tasks:', error)
-                // Continue - non-critical operation
-            }
-        }
-
-        // Phase 3: Get Usage Stats (only for authenticated users)
+        // Phase 3: Get Usage Stats
         let stats
-        if (user && !isGuest) {
-            try {
-                stats = await getUsageStats(user.id)
-            } catch (error) {
-                console.error('Failed to get usage stats:', error)
-                // Provide default stats on error
-                stats = {
-                    tasksCount: 0,
-                    limit: 5,
-                    isPro: false,
-                    isSampleSeeded: false,
-                    hasSeenOnboarding: false,
-                }
-            }
-        } else {
-            // Guest users get default stats
+        try {
+            stats = await getUsageStats(user.id)
+        } catch (error) {
+            console.error('Failed to get usage stats:', error)
+            // Provide default stats on error
             stats = {
                 tasksCount: 0,
                 limit: 5,
@@ -67,24 +41,12 @@ export default async function DashboardPage(props: { searchParams: { error?: str
             }
         }
 
-        // Get all tasks - filter by user_id OR guest_id (same identity)
-        let query = supabase
+        // Get all tasks - filter by user_id ONLY
+        const { data: allTasks, error: tasksError } = await supabase
             .from('tasks')
             .select('*')
+            .eq('user_id', user.id)
             .order('created_at', { ascending: false })
-        
-        if (user && !isGuest) {
-            // Authenticated user: filter by user_id
-            query = query.eq('user_id', user.id)
-        } else if (guestId) {
-            // Guest user: filter by guest_id
-            query = query.eq('guest_id', guestId)
-        } else {
-            // No identity - return empty
-            query = query.eq('id', '00000000-0000-0000-0000-000000000000') // Impossible match
-        }
-        
-        const { data: allTasks, error: tasksError } = await query
 
         if (tasksError) {
             console.error('Failed to fetch tasks:', tasksError)
@@ -96,10 +58,13 @@ export default async function DashboardPage(props: { searchParams: { error?: str
         const todayKey = startOfDayKey(now)
 
         const upcomingTasks = (allTasks || []).filter(task => {
-            // Only pending tasks
-            if (task.status !== 'pending') return false
+            // Only pending tasks (normalize status to lowercase)
+            const status = (task.status || '').toLowerCase()
+            if (status !== 'pending') return false
             
-            // Include tasks with no due date in "No date" group
+            // Include ALL pending tasks:
+            // - Tasks with due_at IS NULL (no date)
+            // - Tasks with due_at >= startOfToday
             let taskDateKey: string | null = null
             if (task.due_at) {
                 taskDateKey = startOfDayKey(task.due_at)

@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { canCreateTask } from '@/lib/usage'
 import { combineDateTimeToISO, extractDateFromDueAt } from '@/lib/datetime-utils'
-import { cookies } from 'next/headers'
 
 /**
  * Create a task with a specific due date and optional time
@@ -14,24 +13,16 @@ export async function createTaskWithDate(formData: FormData) {
     try {
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
-        
-        // Get guest_id from cookie if no authenticated user
-        const cookieStore = await cookies()
-        const guestId = cookieStore.get('guest_id')?.value
 
-        // Must have user OR guest_id
-        if ((authError || !user) && !guestId) {
+        // STRICT AUTH: Must have authenticated user
+        if (authError || !user) {
             redirect('/login')
         }
-        
-        const isGuest = !user && !!guestId
 
-        // Check usage limits (only for authenticated users)
-        if (!isGuest && user) {
-            const { allowed, reason } = await canCreateTask(user.id)
-            if (!allowed) {
-                return { error: reason }
-            }
+        // Check usage limits
+        const { allowed, reason } = await canCreateTask(user.id)
+        if (!allowed) {
+            return { error: reason }
         }
 
         const title = formData.get('title') as string
@@ -69,28 +60,18 @@ export async function createTaskWithDate(formData: FormData) {
         // Always set due_date = due_at::date for backwards compatibility
         const due_date = due_at ? extractDateFromDueAt(due_at) : dueDate
 
-        const insertData: any = {
+        const normalizedStatus = ((status || 'pending').toLowerCase() === 'completed' ? 'completed' : 'pending') as 'pending' | 'completed'
+        
+        const { error } = await supabase.from('tasks').insert({
             title: title.trim(),
             description: description || null,
-            status,
+            status: normalizedStatus, // Normalize to lowercase enum
             due_date, // Always set from due_at for compatibility
             due_at,   // Primary field
             start_time: start_time || null, // Keep for backwards compatibility
             end_time: end_time || null,     // Keep for backwards compatibility
-        }
-        
-        // Set user_id OR guest_id (never both)
-        if (isGuest && guestId) {
-            insertData.guest_id = guestId
-            insertData.user_id = null
-        } else if (user) {
-            insertData.user_id = user.id
-            insertData.guest_id = null
-        } else {
-            return { error: 'No identity found' }
-        }
-        
-        const { error } = await supabase.from('tasks').insert(insertData)
+            user_id: user.id, // ALWAYS set user_id, never guest_id
+        })
 
         if (error) {
             console.error('Error creating task:', error)
@@ -225,20 +206,32 @@ export async function toggleTaskStatus(taskId: string) {
             }
         }
 
-        // Update current task status
-        const { error: updateError } = await supabase
+        // Update current task status - MUST filter by BOTH id AND user_id, return updated row
+        const normalizedNewStatus = (newStatus.toLowerCase() === 'completed' ? 'completed' : 'pending') as 'pending' | 'completed'
+        const { data: updatedTask, error: updateError } = await supabase
             .from('tasks')
-            .update({ status: newStatus })
+            .update({ status: normalizedNewStatus }) // Normalized enum
             .eq('id', taskId)
-            .eq('user_id', user.id)
+            .eq('user_id', user.id) // CRITICAL: Filter by user_id for RLS safety
+            .select('id, title, status, due_at, due_date, created_at, updated_at, user_id')
+            .single()
 
-        if (updateError) {
-            console.error('Error toggling task status:', updateError)
-            return { error: updateError.message || 'Could not update task' }
+        if (updateError || !updatedTask || !updatedTask.id) {
+            console.error('Error toggling task status:', { taskId, userId: user.id, error: updateError })
+            return { error: updateError?.message || 'Could not update task' }
+        }
+        
+        // Verify user_id matches
+        if (updatedTask.user_id !== user.id) {
+            console.error('RLS violation: updated task user_id mismatch', { updatedTask, userId: user.id })
+            return { error: 'Task update failed: ownership mismatch' }
         }
 
         revalidatePath('/dashboard')
-        return { success: true }
+        return { 
+            success: true,
+            task: updatedTask // Return updated row for optimistic UI
+        }
     } catch (error) {
         console.error('Error in toggleTaskStatus:', error)
         return { error: 'An unexpected error occurred. Please try again.' }

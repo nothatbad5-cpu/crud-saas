@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { checkSubscriptionAccess } from '@/lib/subscription'
 import { canCreateTask } from '@/lib/usage'
-import { cookies } from 'next/headers'
 
 // New Action: Complete Onboarding
 export async function completeOnboarding() {
@@ -37,47 +36,33 @@ export async function createTask(formData: FormData) {
         const supabase = await createClient()
 
         const { data: { user }, error: authError } = await supabase.auth.getUser()
-        
-        // Get guest_id from cookie if no authenticated user
-        const cookieStore = await cookies()
-        const guestId = cookieStore.get('guest_id')?.value
 
-        // Must have user OR guest_id
-        if ((authError || !user) && !guestId) {
+        // STRICT AUTH: Must have authenticated user
+        if (authError || !user) {
             redirect('/login')
         }
-        
-        const isGuest = !user && !!guestId
-        const identityId = user?.id || guestId
 
         // Phase 3: Check usage limits (Pro users bypass this in canCreateTask logic)
-        // Only check for authenticated users, not guests
-        if (!isGuest && user) {
-            const { allowed, reason } = await canCreateTask(user.id)
+        const { allowed, reason } = await canCreateTask(user.id)
 
-            // NOTE: We allow Pro users to create tasks even if they don't have subscription active 
-            // IF we wanted strictly Gated access only, we'd keep the checkSubscriptionAccess 
-            // but the prompt says Free users have 5 tasks.
-            // So:
-            // 1. If Pro -> Unlimited
-            // 2. If Free -> Limited to 5
+        // NOTE: We allow Pro users to create tasks even if they don't have subscription active 
+        // IF we wanted strictly Gated access only, we'd keep the checkSubscriptionAccess 
+        // but the prompt says Free users have 5 tasks.
+        // So:
+        // 1. If Pro -> Unlimited
+        // 2. If Free -> Limited to 5
 
-            if (!allowed) {
-                // If not allowed, it means limit reached.
-                // But we also need to check if they are "Gated".
-                // The previous logic was: "If not subscribed, redirect to pricing".
-                // Phase 3 requirements say: Free users can create up to 5 tasks.
-                // So we ONLY block if they are Free AND over limit.
+        if (!allowed) {
+            // If not allowed, it means limit reached.
+            // But we also need to check if they are "Gated".
+            // The previous logic was: "If not subscribed, redirect to pricing".
+            // Phase 3 requirements say: Free users can create up to 5 tasks.
+            // So we ONLY block if they are Free AND over limit.
 
-                // If reason is limit reached, redirect with error
-                redirect(`/dashboard?error=${encodeURIComponent(reason ?? 'Limit reached')}`)
-                return
-            }
+            // If reason is limit reached, redirect with error
+            redirect(`/dashboard?error=${encodeURIComponent(reason ?? 'Limit reached')}`)
+            return
         }
-
-        // CAUTION: The previous logic strictly gated ALL creation.
-        // We must remove the strict "checkSubscriptionAccess" block here to allow Free users up to 5.
-        // canCreateTask already handles "if pro -> infinity".
 
         // Get due_date and optional time from form
         const dueDateInput = formData.get('dueDate') as string || formData.get('due_date') as string
@@ -91,27 +76,14 @@ export async function createTask(formData: FormData) {
         // Always set due_date = due_at::date for backwards compatibility
         const due_date = due_at ? extractDateFromDueAt(due_at) : due_date_input
 
-        const insertData: any = {
+        const { error } = await supabase.from('tasks').insert({
             title: formData.get('title') as string,
             description: formData.get('description') as string,
-            status: formData.get('status') as 'pending' | 'completed',
+            status: (formData.get('status') as 'pending' | 'completed') || 'pending',
             due_date, // Always set from due_at for compatibility
             due_at,   // Primary field
-        }
-        
-        // Set user_id OR guest_id (never both)
-        if (isGuest && guestId) {
-            insertData.guest_id = guestId
-            insertData.user_id = null
-        } else if (user) {
-            insertData.user_id = user.id
-            insertData.guest_id = null
-        } else {
-            redirect('/login')
-            return
-        }
-        
-        const { error } = await supabase.from('tasks').insert(insertData)
+            user_id: user.id, // ALWAYS set user_id, never guest_id
+        })
 
         if (error) {
             // Redirect to dashboard with error, not back to create page

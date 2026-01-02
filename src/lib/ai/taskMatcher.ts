@@ -19,24 +19,16 @@ export function normalizeTitle(title: string): string {
  * Find existing task by normalized title
  * Returns the first matching task or null
  * Uses exact normalized match for reliable duplicate detection
- * Supports both authenticated users (user_id) and guests (guest_id)
  */
-export async function findTaskByTitle(identityId: string, title: string, isGuest: boolean = false): Promise<{ id: string; title: string; due_at: string | null } | null> {
+export async function findTaskByTitle(userId: string, title: string): Promise<{ id: string; title: string; due_at: string | null } | null> {
     const supabase = await createClient()
     const normalized = normalizeTitle(title)
     
-    // Get all tasks for this identity (user_id OR guest_id) to do normalized comparison
-    let query = supabase
+    // Get all tasks for this user to do normalized comparison - filter by user_id ONLY
+    const { data: allTasks, error } = await supabase
         .from('tasks')
         .select('id, title, due_at')
-    
-    if (isGuest) {
-        query = query.eq('guest_id', identityId)
-    } else {
-        query = query.eq('user_id', identityId)
-    }
-    
-    const { data: allTasks, error } = await query
+        .eq('user_id', userId)
     
     if (error || !allTasks) {
         return null

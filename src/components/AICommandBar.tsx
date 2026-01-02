@@ -61,11 +61,15 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
                 if (actuallySucceeded) {
                     // Build success message with actual task info and debug
                     let successMsg = data.resultMessage || 'Command executed successfully'
-                    if (hasCreated) {
-                        const createdRow = data.created[0]
+                    const createdRow = data.createdRow || (hasCreated ? data.created[0] : null)
+                    
+                    if (createdRow) {
                         successMsg = `Created task: "${createdRow.title}" (ID: ${createdRow.id.substring(0, 8)}...)`
                         // Debug: show full created row info
                         console.log('[AI] Created task:', createdRow)
+                        
+                        // OPTIMISTIC UI UPDATE: Trigger parent refresh immediately
+                        // The parent component should handle optimistic injection
                     }
                     
                     setExecutionResult({
@@ -75,7 +79,7 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
                     // Clear input and refresh
                     setInput('')
                     if (onSuccess) {
-                        onSuccess()
+                        onSuccess() // This triggers router.refresh()
                     } else {
                         // Use router.refresh() for Next.js App Router
                         router.refresh()
