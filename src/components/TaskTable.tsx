@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { deleteTask } from '@/app/dashboard/actions'
-import { formatDateYYYYMMDD } from '@/lib/date-format'
+import { formatDateISO } from '@/lib/date'
 
 interface Task {
     id: string
@@ -54,7 +54,7 @@ export default function TaskTable({ tasks }: { tasks: Task[] }) {
                         )}
                         {/* Second row: Created date */}
                         <div className="text-xs text-gray-400 mb-2">
-                            {formatDateYYYYMMDD(task.created_at)}
+                            {formatDateISO(task.created_at)}
                         </div>
                         {/* Bottom row: Actions */}
                         <div className="flex gap-2 pt-2 border-t border-[#262626]">
@@ -112,7 +112,7 @@ export default function TaskTable({ tasks }: { tasks: Task[] }) {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                                            {formatDateYYYYMMDD(task.created_at)}
+                                            {formatDateISO(task.created_at)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <Link href={`/dashboard/${task.id}/edit`} className="text-[#f5f5f5] hover:opacity-80 mr-4">

@@ -56,6 +56,40 @@ export function formatRelativeLabel(dateInput: string | Date): string {
 }
 
 /**
+ * Format date in readable format: "Jan 4, 2026"
+ * Deterministic, no locale dependency
+ */
+export function formatDateReadable(dateInput: string | Date): string {
+    const d = new Date(dateInput)
+    if (isNaN(d.getTime())) {
+        return 'Invalid date'
+    }
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const month = monthNames[d.getUTCMonth()]
+    const day = d.getUTCDate()
+    const year = d.getUTCFullYear()
+    return `${month} ${day}, ${year}`
+}
+
+/**
+ * Format time in 12-hour format: "3:00 PM"
+ * Deterministic, no locale dependency
+ */
+export function formatTime12Hour(dateInput: string | Date): string | null {
+    const d = new Date(dateInput)
+    if (isNaN(d.getTime())) {
+        return null
+    }
+    let hours = d.getUTCHours()
+    const minutes = d.getUTCMinutes()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    hours = hours % 12
+    hours = hours ? hours : 12 // 0 should be 12
+    const minutesStr = String(minutes).padStart(2, '0')
+    return `${hours}:${minutesStr} ${ampm}`
+}
+
+/**
  * Get day label for grouping: "Today", "Tomorrow", "Day after tomorrow", or YYYY-MM-DD
  * Uses UTC for consistency
  */

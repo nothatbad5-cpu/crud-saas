@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { toggleTaskStatus } from '@/app/dashboard/calendar-actions'
-import { formatTimeISO, formatDateISO, startOfDayKey } from '@/lib/date'
+import { formatTimeISO, formatDateISO, formatDateReadable, formatTime12Hour, startOfDayKey } from '@/lib/date'
 import { useRouter } from 'next/navigation'
 
 interface Task {
@@ -85,11 +85,11 @@ export default function UpcomingTasks({ groups: initialGroups }: UpcomingTasksPr
                     return next
                 })
             } else {
-                // Set up undo state
+                // Set up undo state (5 second window)
                 const timer = setTimeout(() => {
                     setUndoState(null)
                     router.refresh()
-                }, 8000)
+                }, 5000)
 
                 setUndoState({
                     taskId,
@@ -162,21 +162,23 @@ export default function UpcomingTasks({ groups: initialGroups }: UpcomingTasksPr
                     {/* Tasks for this day */}
                     <div className="space-y-2">
                         {group.tasks.map((task) => {
-                            // Format due date and time
+                            // Format due date and time in readable format
                             let dueDateStr: string | null = null
                             let dueTimeStr: string | null = null
                             
                             if (task.due_at) {
-                                dueDateStr = formatDateISO(task.due_at)
-                                dueTimeStr = formatTimeISO(task.due_at)
-                                if (dueTimeStr === '00:00') {
-                                    dueTimeStr = null // Omit time if midnight
+                                dueDateStr = formatDateReadable(task.due_at)
+                                const time24 = formatTimeISO(task.due_at)
+                                if (time24 && time24 !== '00:00') {
+                                    dueTimeStr = formatTime12Hour(task.due_at)
                                 }
                             } else if (task.due_date) {
-                                dueDateStr = task.due_date
+                                // Parse due_date string to Date for formatting
+                                const dateObj = new Date(task.due_date + 'T00:00:00Z')
+                                dueDateStr = formatDateReadable(dateObj)
                             }
                             
-                            const createdDateStr = formatDateISO(task.created_at)
+                            const createdDateStr = formatDateReadable(task.created_at)
                             
                             return (
                                 <div
@@ -191,7 +193,7 @@ export default function UpcomingTasks({ groups: initialGroups }: UpcomingTasksPr
                                         <div className="flex flex-col gap-0.5 text-xs text-gray-400">
                                             {dueDateStr && (
                                                 <div>
-                                                    Due: {dueDateStr}{dueTimeStr ? ` at ${dueTimeStr}` : ''}
+                                                    {dueDateStr}{dueTimeStr ? ` · ${dueTimeStr}` : ''}
                                                 </div>
                                             )}
                                             <div>

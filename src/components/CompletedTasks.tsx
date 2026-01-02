@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { toggleTaskStatus } from '@/app/dashboard/calendar-actions'
-import { formatDateISO, formatTimeISO } from '@/lib/date'
+import { formatDateISO, formatDateReadable, formatTimeISO, formatTime12Hour } from '@/lib/date'
 import { useRouter } from 'next/navigation'
 
 interface Task {
@@ -61,21 +61,22 @@ export default function CompletedTasks({ tasks: initialTasks }: CompletedTasksPr
     return (
         <div className="space-y-2">
             {tasks.map((task) => {
-                // Format dates
-                const completedDateStr = formatDateISO(task.updated_at)
-                const createdDateStr = formatDateISO(task.created_at)
+                // Format dates in readable format
+                const completedDateStr = formatDateReadable(task.updated_at)
+                const createdDateStr = formatDateReadable(task.created_at)
                 
                 let dueDateStr: string | null = null
                 let dueTimeStr: string | null = null
                 
                 if (task.due_at) {
-                    dueDateStr = formatDateISO(task.due_at)
-                    dueTimeStr = formatTimeISO(task.due_at)
-                    if (dueTimeStr === '00:00') {
-                        dueTimeStr = null
+                    dueDateStr = formatDateReadable(task.due_at)
+                    const time24 = formatTimeISO(task.due_at)
+                    if (time24 && time24 !== '00:00') {
+                        dueTimeStr = formatTime12Hour(task.due_at)
                     }
                 } else if (task.due_date) {
-                    dueDateStr = task.due_date
+                    const dateObj = new Date(task.due_date + 'T00:00:00Z')
+                    dueDateStr = formatDateReadable(dateObj)
                 }
                 
                 return (
