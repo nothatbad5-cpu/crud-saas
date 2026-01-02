@@ -51,18 +51,18 @@ export function extractDueDate(input: string): ExtractedDate {
             .trim()
     }
     
-    // Convert to ISO string (use the parsed date object directly)
+    // Convert to ISO string (use UTC to avoid timezone issues)
     let dueDateISO: string
     if (time) {
-        // Include time - create date with time
+        // Include time - create date with time in UTC
         const [hours, minutes] = time.split(':')
         const dateWithTime = new Date(parsedDate)
-        dateWithTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0)
+        dateWithTime.setUTCHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0)
         dueDateISO = dateWithTime.toISOString()
     } else {
-        // All-day (midnight UTC) - use date at start of day
+        // All-day (midnight UTC) - use date at start of day in UTC
         const dateAtMidnight = new Date(parsedDate)
-        dateAtMidnight.setHours(0, 0, 0, 0)
+        dateAtMidnight.setUTCHours(0, 0, 0, 0)
         dueDateISO = dateAtMidnight.toISOString()
     }
     

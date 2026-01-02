@@ -13,12 +13,21 @@ interface ExecutionResult {
     success: boolean
     message: string
     affectedCount: number
+    results: Array<{
+        type: string
+        ok: boolean
+        id?: string
+        title?: string
+        due_at?: string | null
+        error?: string
+    }>
 }
 
 export async function executeActions(userId: string, actions: Action[]): Promise<ExecutionResult> {
     const supabase = await createClient()
     let totalAffected = 0
     const messages: string[] = []
+    const results: ExecutionResult['results'] = []
     
     for (const action of actions) {
         if (action.type === 'noop') {
@@ -30,10 +39,17 @@ export async function executeActions(userId: string, actions: Action[]): Promise
             // Check usage limits
             const { allowed, reason } = await canCreateTask(userId)
             if (!allowed) {
+                results.push({
+                    type: 'create',
+                    ok: false,
+                    title: action.title,
+                    error: reason || 'Cannot create task: limit reached'
+                })
                 return {
                     success: false,
                     message: reason || 'Cannot create task: limit reached',
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
@@ -90,18 +106,38 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                 insertData.recurrence_timezone = action.recurrenceTimezone || 'UTC'
             }
 
-            const { error } = await supabase.from('tasks').insert(insertData)
+            // Insert and verify the task was actually created
+            const { data: insertedTask, error } = await supabase
+                .from('tasks')
+                .insert(insertData)
+                .select('id, title, due_at')
+                .single()
             
-            if (error) {
+            if (error || !insertedTask) {
+                const errorMsg = error?.message || 'Task was not created'
+                results.push({
+                    type: 'create',
+                    ok: false,
+                    title: action.title,
+                    error: errorMsg
+                })
                 return {
                     success: false,
-                    message: `Failed to create task: ${error.message}`,
+                    message: `Failed to create task: ${errorMsg}`,
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
             totalAffected++
             messages.push(`Created task: "${action.title}"`)
+            results.push({
+                type: 'create',
+                ok: true,
+                id: insertedTask.id,
+                title: insertedTask.title,
+                due_at: insertedTask.due_at
+            })
         }
         
         if (action.type === 'update') {
@@ -114,37 +150,64 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                 // Try exact match first
                 query = query.ilike('title', action.match.title)
             } else {
+                results.push({
+                    type: 'update',
+                    ok: false,
+                    error: 'Update action requires id or title to match'
+                })
                 return {
                     success: false,
                     message: 'Update action requires id or title to match',
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
             const { data: tasks, error: fetchError } = await query
             
             if (fetchError) {
+                results.push({
+                    type: 'update',
+                    ok: false,
+                    title: action.match.title || action.match.id,
+                    error: fetchError.message
+                })
                 return {
                     success: false,
                     message: `Failed to find tasks: ${fetchError.message}`,
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
             if (!tasks || tasks.length === 0) {
+                results.push({
+                    type: 'update',
+                    ok: false,
+                    title: action.match.title || action.match.id,
+                    error: 'No task found matching'
+                })
                 return {
                     success: false,
                     message: `No task found matching: ${action.match.title || action.match.id}`,
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
             if (tasks.length > 1 && !action.match.id) {
                 // Multiple matches - return error asking for specificity
+                results.push({
+                    type: 'update',
+                    ok: false,
+                    title: action.match.title,
+                    error: 'Multiple tasks match'
+                })
                 return {
                     success: false,
                     message: `Multiple tasks match "${action.match.title}". Please be more specific or use the task ID.`,
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
@@ -212,22 +275,54 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                 updateData.recurrence_timezone = action.patch.recurrenceTimezone
             }
             
-            // Update all matched tasks
-            const { error: updateError } = await supabase
+            // Update all matched tasks and verify
+            const { data: updatedTasks, error: updateError } = await supabase
                 .from('tasks')
                 .update(updateData)
                 .in('id', tasks.map(t => t.id))
+                .select('id, title, due_at')
             
             if (updateError) {
+                results.push({
+                    type: 'update',
+                    ok: false,
+                    title: action.match.title || action.match.id,
+                    error: updateError.message
+                })
                 return {
                     success: false,
                     message: `Failed to update task: ${updateError.message}`,
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
-            totalAffected += tasks.length
-            messages.push(`Updated ${tasks.length} task(s)`)
+            if (!updatedTasks || updatedTasks.length === 0) {
+                results.push({
+                    type: 'update',
+                    ok: false,
+                    title: action.match.title || action.match.id,
+                    error: 'No tasks were updated'
+                })
+                return {
+                    success: false,
+                    message: 'No tasks were updated',
+                    affectedCount: totalAffected,
+                    results
+                }
+            }
+            
+            totalAffected += updatedTasks.length
+            messages.push(`Updated ${updatedTasks.length} task(s)`)
+            for (const task of updatedTasks) {
+                results.push({
+                    type: 'update',
+                    ok: true,
+                    id: task.id,
+                    title: task.title,
+                    due_at: task.due_at
+                })
+            }
         }
         
         if (action.type === 'delete') {
@@ -244,10 +339,17 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                     .limit(1)
                 
                 if (fetchError) {
+                    results.push({
+                        type: 'delete',
+                        ok: false,
+                        title: action.match.id,
+                        error: fetchError.message
+                    })
                     return {
                         success: false,
                         message: `Failed to find tasks: ${fetchError.message}`,
                         affectedCount: totalAffected,
+                        results
                     }
                 }
                 
@@ -265,10 +367,17 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                     .limit(action.limit || 100)
                 
                 if (fetchError) {
+                    results.push({
+                        type: 'delete',
+                        ok: false,
+                        title: action.match.title,
+                        error: fetchError.message
+                    })
                     return {
                         success: false,
                         message: `Failed to find tasks: ${fetchError.message}`,
                         affectedCount: totalAffected,
+                        results
                     }
                 }
                 
@@ -284,10 +393,17 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                         .limit(action.limit || 100)
                     
                     if (fetchError2) {
+                        results.push({
+                            type: 'delete',
+                            ok: false,
+                            title: action.match.title,
+                            error: fetchError2.message
+                        })
                         return {
                             success: false,
                             message: `Failed to find tasks: ${fetchError2.message}`,
                             affectedCount: totalAffected,
+                            results
                         }
                     }
                     
@@ -303,10 +419,17 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                             .limit(action.limit || 100)
                         
                         if (fetchError3) {
+                            results.push({
+                                type: 'delete',
+                                ok: false,
+                                title: action.match.title,
+                                error: fetchError3.message
+                            })
                             return {
                                 success: false,
                                 message: `Failed to find tasks: ${fetchError3.message}`,
                                 affectedCount: totalAffected,
+                                results
                             }
                         }
                         
@@ -314,66 +437,114 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                     }
                 }
             } else {
+                results.push({
+                    type: 'delete',
+                    ok: false,
+                    error: 'Delete action requires id or title to match'
+                })
                 return {
                     success: false,
                     message: 'Delete action requires id or title to match',
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
             // Check for multiple matches (requires confirmation)
             if (tasks.length > 1 && !action.match.id) {
+                results.push({
+                    type: 'delete',
+                    ok: false,
+                    title: action.match.title,
+                    error: 'Multiple tasks match'
+                })
                 return {
                     success: false,
                     message: `Multiple tasks match "${action.match.title}". Please be more specific or use the task ID.`,
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
             if (tasks.length === 0) {
+                results.push({
+                    type: 'delete',
+                    ok: false,
+                    title: action.match.title || action.match.id,
+                    error: 'No task found matching'
+                })
                 return {
                     success: false,
                     message: `No task found matching: ${action.match.title || action.match.id}`,
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
-            // Delete all matched tasks
-            const { error: deleteError } = await supabase
+            // Delete all matched tasks and verify
+            const { data: deletedTasks, error: deleteError } = await supabase
                 .from('tasks')
                 .delete()
                 .in('id', tasks.map(t => t.id))
+                .select('id, title')
             
             if (deleteError) {
+                results.push({
+                    type: 'delete',
+                    ok: false,
+                    title: action.match.title || action.match.id,
+                    error: deleteError.message
+                })
                 return {
                     success: false,
                     message: `Failed to delete task: ${deleteError.message}`,
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
-            totalAffected += tasks.length
-            messages.push(`Deleted ${tasks.length} task(s)`)
+            totalAffected += (deletedTasks?.length || 0)
+            messages.push(`Deleted ${deletedTasks?.length || 0} task(s)`)
+            for (const task of (deletedTasks || [])) {
+                results.push({
+                    type: 'delete',
+                    ok: true,
+                    id: task.id,
+                    title: task.title
+                })
+            }
         }
         
         if (action.type === 'bulk_delete_all') {
             // Delete all user's tasks
-            const { error: deleteError } = await supabase
+            const { data: deletedTasks, error: deleteError } = await supabase
                 .from('tasks')
                 .delete()
                 .eq('user_id', userId)
+                .select('id')
             
             if (deleteError) {
+                results.push({
+                    type: 'bulk_delete_all',
+                    ok: false,
+                    error: deleteError.message
+                })
                 return {
                     success: false,
                     message: `Failed to delete all tasks: ${deleteError.message}`,
                     affectedCount: totalAffected,
+                    results
                 }
             }
             
-            // Count deleted (approximate)
-            totalAffected++
-            messages.push('Deleted all tasks')
+            // Count deleted
+            const deletedCount = deletedTasks?.length || 0
+            totalAffected += deletedCount
+            messages.push(`Deleted all tasks (${deletedCount})`)
+            results.push({
+                type: 'bulk_delete_all',
+                ok: true
+            })
         }
     }
     
@@ -381,6 +552,7 @@ export async function executeActions(userId: string, actions: Action[]): Promise
         success: true,
         message: messages.join('. ') || 'No actions executed',
         affectedCount: totalAffected,
+        results
     }
 }
 

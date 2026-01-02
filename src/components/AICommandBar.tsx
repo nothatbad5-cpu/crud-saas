@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Action, CommandResponse } from '@/lib/ai-command/schema'
 
 interface AICommandBarProps {
@@ -8,6 +9,7 @@ interface AICommandBarProps {
 }
 
 export default function AICommandBar({ onSuccess }: AICommandBarProps) {
+    const router = useRouter()
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [result, setResult] = useState<CommandResponse | null>(null)
@@ -39,21 +41,33 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
                 return
             }
 
-            // If no confirmation needed, show result immediately
+            // If no confirmation needed, verify actual success
             if (!data.requiresConfirm) {
-                setExecutionResult({
-                    success: true,
-                    message: data.resultMessage || data.message || 'Command executed successfully',
-                })
-                // Clear input and refresh
-                setInput('')
-                if (onSuccess) {
-                    onSuccess()
+                // Only show success if ok=true AND we have actual results
+                const hasCreatedTasks = data.results?.some((r: any) => r.type === 'create' && r.ok && r.id)
+                const hasUpdatedTasks = data.results?.some((r: any) => r.type === 'update' && r.ok && r.id)
+                const hasDeletedTasks = data.results?.some((r: any) => r.type === 'delete' && r.ok && r.id)
+                const actuallySucceeded = data.ok === true && (hasCreatedTasks || hasUpdatedTasks || hasDeletedTasks || data.actionsApplied > 0)
+                
+                if (actuallySucceeded) {
+                    setExecutionResult({
+                        success: true,
+                        message: data.resultMessage || data.message || 'Command executed successfully',
+                    })
+                    // Clear input and refresh
+                    setInput('')
+                    if (onSuccess) {
+                        onSuccess()
+                    } else {
+                        // Use router.refresh() for Next.js App Router
+                        router.refresh()
+                    }
                 } else {
-                    // Small delay to show result, then refresh
-                    setTimeout(() => {
-                        window.location.reload()
-                    }, 500)
+                    // Show error - task was not actually created
+                    setExecutionResult({
+                        success: false,
+                        message: data.error || data.resultMessage || 'Failed to execute command. Task may not have been created.',
+                    })
                 }
                 return
             }
@@ -105,23 +119,28 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
                 return
             }
 
+            // Verify actual success
+            const hasCreatedTasks = data.results?.some((r: any) => r.type === 'create' && r.ok && r.id)
+            const hasUpdatedTasks = data.results?.some((r: any) => r.type === 'update' && r.ok && r.id)
+            const hasDeletedTasks = data.results?.some((r: any) => r.type === 'delete' && r.ok && r.id)
+            const actuallySucceeded = data.ok === true && (hasCreatedTasks || hasUpdatedTasks || hasDeletedTasks || data.actionsApplied > 0)
+            
             setExecutionResult({
-                success: data.success !== false,
-                message: data.resultMessage || data.message || 'Command executed successfully',
+                success: actuallySucceeded,
+                message: actuallySucceeded 
+                    ? (data.resultMessage || data.message || 'Command executed successfully')
+                    : (data.error || data.resultMessage || 'Failed to execute command'),
             })
 
             // Clear input and result on success
-            if (data.success !== false) {
+            if (actuallySucceeded) {
                 setInput('')
                 setResult(null)
                 // Trigger refresh
                 if (onSuccess) {
                     onSuccess()
                 } else {
-                    // Small delay to show result, then refresh
-                    setTimeout(() => {
-                        window.location.reload()
-                    }, 500)
+                    router.refresh()
                 }
             }
         } catch (error: any) {

@@ -57,15 +57,20 @@ export async function POST(request: NextRequest) {
         // Execute actions
         const result = await executeActions(user.id, validatedActions)
         
-        // Revalidate dashboard
-        revalidatePath('/dashboard')
+        // Only revalidate if execution succeeded
+        if (result.success) {
+            revalidatePath('/dashboard')
+        }
         
         return NextResponse.json({
+            ok: result.success,
             resultMessage: result.message,
             preview: pendingData.preview,
             requiresConfirm: false,
             success: result.success,
-            affectedCount: result.affectedCount,
+            actionsApplied: result.affectedCount,
+            results: result.results,
+            error: result.success ? undefined : result.message,
         })
     } catch (error: any) {
         console.error('Error in task-command confirm API:', error)

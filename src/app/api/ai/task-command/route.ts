@@ -166,15 +166,20 @@ export async function POST(request: NextRequest) {
         if (!requiresConfirm) {
             const result = await executeActions(user.id, validatedActions)
             
-            // Revalidate dashboard
-            revalidatePath('/dashboard')
+            // Only revalidate if execution succeeded
+            if (result.success) {
+                revalidatePath('/dashboard')
+            }
             
+            // Return detailed results
             return NextResponse.json({
+                ok: result.success,
                 preview,
                 requiresConfirm: false,
                 resultMessage: result.message,
-                actionsExecutedCount: result.affectedCount,
-                actions: [], // Not needed for immediate execution
+                actionsApplied: result.affectedCount,
+                results: result.results,
+                error: result.success ? undefined : result.message,
             })
         }
         

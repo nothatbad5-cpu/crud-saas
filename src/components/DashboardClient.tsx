@@ -54,7 +54,7 @@ export default function DashboardClient({ tasks, upcomingGroups, completedTasks,
     // Add extra padding to ensure last task is fully visible and clickable
     // Use both Tailwind class and inline style for maximum compatibility
     return (
-        <div className="w-full min-h-full relative" style={{ paddingBottom: 'max(140px, calc(env(safe-area-inset-bottom) + 140px))' }}>
+        <div className="w-full min-h-full relative" style={{ paddingBottom: 'max(160px, calc(env(safe-area-inset-bottom) + 160px))' }}>
             {/* Error Banner */}
             {error && (
                 <div className="bg-[#1f1f1f] border-l-4 border-[#262626] p-4 mb-6">
