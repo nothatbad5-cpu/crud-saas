@@ -53,38 +53,29 @@ export default async function DashboardPage(props: { searchParams: { error?: str
             // Continue with empty tasks array
         }
 
-        // Filter and group upcoming tasks (pending, with due date today or later)
+        // Filter upcoming tasks - ONLY filter by status, NEVER by date
+        // ALL pending tasks must appear in Upcoming, including overdue tasks
         const now = new Date()
         const todayKey = startOfDayKey(now)
+        
+        // Calculate tomorrow key for grouping
+        const tomorrow = new Date(now)
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
+        const tomorrowKey = startOfDayKey(tomorrow)
 
+        // CRITICAL: Filter ONLY by status === 'pending'
+        // Do NOT exclude tasks based on date comparisons
+        // ALL pending tasks must appear, including overdue ones
         const upcomingTasks = (allTasks || []).filter(task => {
-            // Only pending tasks (normalize status to lowercase)
             const status = (task.status || '').toLowerCase()
-            if (status !== 'pending') return false
-            
-            // Include ALL pending tasks:
-            // - Tasks with due_at IS NULL (no date) -> treated as TODAY
-            // - Tasks with due_at >= startOfToday
-            let taskDateKey: string | null = null
-            if (task.due_at) {
-                taskDateKey = startOfDayKey(task.due_at)
-            } else if (task.due_date) {
-                taskDateKey = task.due_date
-            }
-            
-            // If no due date, treat as TODAY (so it's included and grouped under Today)
-            // This ensures AI-created tasks without dates appear immediately in Upcoming
-            if (!taskDateKey) {
-                return true // Include it, will be assigned todayKey in grouping
-            }
-            
-            // Due date must be today or later
-            return taskDateKey >= todayKey
+            return status === 'pending'
         })
 
-        // Group tasks by date - ALL tasks must belong to a visible date group
-        // Tasks without dates are treated as TODAY to ensure they're always visible
+        // Group tasks AFTER filtering by status only
+        // Each date gets its own group, labeled as: Overdue, Today, Tomorrow, or date label
+        // Tasks with due_at = null are grouped under Today
         const groupsMap = new Map<string, typeof upcomingTasks>()
+        
         for (const task of upcomingTasks) {
             let dateKey: string
             if (task.due_at) {
@@ -94,31 +85,49 @@ export default async function DashboardPage(props: { searchParams: { error?: str
             } else {
                 // CRITICAL: Tasks with no due_at and no due_date are treated as TODAY
                 // This ensures AI-created tasks (often with due_at = null) appear immediately
-                // under "Today" instead of being hidden or grouped separately
                 dateKey = todayKey
             }
             
+            // Use dateKey as the grouping key (YYYY-MM-DD format)
+            // Labels will be assigned during conversion based on date comparison
             if (!groupsMap.has(dateKey)) {
                 groupsMap.set(dateKey, [])
             }
             groupsMap.get(dateKey)!.push(task)
         }
 
-        // Convert to sorted array of groups - all groups are visible date groups
+        // Convert to sorted array of groups with proper labels
+        // Labels: Overdue (for dates < today), Today, Tomorrow, or dayLabel for future dates
         const taskGroups = Array.from(groupsMap.entries())
-            .map(([key, tasks]) => ({
-                key,
-                label: dayLabel(key), // All keys are valid date keys (no "__no_date__")
-                tasks: tasks.sort((a, b) => {
-                    // Sort by time if available, else by title
-                    const timeA = a.due_at ? new Date(a.due_at).getTime() : 0
-                    const timeB = b.due_at ? new Date(b.due_at).getTime() : 0
-                    if (timeA !== timeB) return timeA - timeB
-                    return a.title.localeCompare(b.title)
-                })
-            }))
+            .map(([dateKey, tasks]) => {
+                // Determine label based on date comparison
+                let label: string
+                if (dateKey < todayKey) {
+                    label = 'Overdue'
+                } else if (dateKey === todayKey) {
+                    label = 'Today'
+                } else if (dateKey === tomorrowKey) {
+                    label = 'Tomorrow'
+                } else {
+                    // Future dates use dayLabel (returns "Day after tomorrow" or YYYY-MM-DD)
+                    label = dayLabel(dateKey)
+                }
+                
+                return {
+                    key: dateKey, // Keep dateKey for sorting
+                    label, // Use computed label for display
+                    tasks: tasks.sort((a, b) => {
+                        // Sort by time if available, else by title
+                        const timeA = a.due_at ? new Date(a.due_at).getTime() : 0
+                        const timeB = b.due_at ? new Date(b.due_at).getTime() : 0
+                        if (timeA !== timeB) return timeA - timeB
+                        return a.title.localeCompare(b.title)
+                    })
+                }
+            })
             .sort((a, b) => {
-                // Sort groups by date (Today first, then Tomorrow, then future dates)
+                // Sort by date key (YYYY-MM-DD string comparison works correctly)
+                // This ensures: Overdue dates first (oldest first), then Today, Tomorrow, then future dates
                 return a.key.localeCompare(b.key)
             })
 
