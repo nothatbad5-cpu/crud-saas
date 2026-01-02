@@ -76,14 +76,14 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
                         success: true,
                         message: successMsg + (data.requestId ? ` [req:${data.requestId.substring(0, 8)}...]` : ''),
                     })
-                    // Clear input and refresh
+                    // Clear input and refresh - CRITICAL: Always refresh to re-fetch tasks from server
+                    // This ensures tasks with due_at = null appear in Upcoming under Today
                     setInput('')
                     if (onSuccess) {
                         onSuccess() // This triggers router.refresh()
-                    } else {
-                        // Use router.refresh() for Next.js App Router
-                        router.refresh()
                     }
+                    // Always call router.refresh() to ensure server re-fetches and re-groups tasks
+                    router.refresh()
                 } else {
                     // Show error - no actual IDs returned
                     setExecutionResult({
@@ -166,12 +166,13 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
             if (actuallySucceeded) {
                 setInput('')
                 setResult(null)
-                // Trigger refresh
+                // CRITICAL: Always refresh to re-fetch tasks from server
+                // This ensures tasks with due_at = null appear in Upcoming under Today
                 if (onSuccess) {
-                    onSuccess()
-                } else {
-                    router.refresh()
+                    onSuccess() // This triggers router.refresh()
                 }
+                // Always call router.refresh() to ensure server re-fetches and re-groups tasks
+                router.refresh()
             }
         } catch (error: any) {
             setExecutionResult({

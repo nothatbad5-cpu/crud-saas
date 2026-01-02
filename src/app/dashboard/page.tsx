@@ -63,7 +63,7 @@ export default async function DashboardPage(props: { searchParams: { error?: str
             if (status !== 'pending') return false
             
             // Include ALL pending tasks:
-            // - Tasks with due_at IS NULL (no date)
+            // - Tasks with due_at IS NULL (no date) -> treated as TODAY
             // - Tasks with due_at >= startOfToday
             let taskDateKey: string | null = null
             if (task.due_at) {
@@ -72,14 +72,18 @@ export default async function DashboardPage(props: { searchParams: { error?: str
                 taskDateKey = task.due_date
             }
             
-            // If no due date, include it (will be grouped under "No date")
-            if (!taskDateKey) return true
+            // If no due date, treat as TODAY (so it's included and grouped under Today)
+            // This ensures AI-created tasks without dates appear immediately in Upcoming
+            if (!taskDateKey) {
+                return true // Include it, will be assigned todayKey in grouping
+            }
             
             // Due date must be today or later
             return taskDateKey >= todayKey
         })
 
-        // Group tasks by date (including "No date" group)
+        // Group tasks by date - ALL tasks must belong to a visible date group
+        // Tasks without dates are treated as TODAY to ensure they're always visible
         const groupsMap = new Map<string, typeof upcomingTasks>()
         for (const task of upcomingTasks) {
             let dateKey: string
@@ -88,8 +92,10 @@ export default async function DashboardPage(props: { searchParams: { error?: str
             } else if (task.due_date) {
                 dateKey = task.due_date
             } else {
-                // No due date - group under "No date"
-                dateKey = '__no_date__'
+                // CRITICAL: Tasks with no due_at and no due_date are treated as TODAY
+                // This ensures AI-created tasks (often with due_at = null) appear immediately
+                // under "Today" instead of being hidden or grouped separately
+                dateKey = todayKey
             }
             
             if (!groupsMap.has(dateKey)) {
@@ -98,11 +104,11 @@ export default async function DashboardPage(props: { searchParams: { error?: str
             groupsMap.get(dateKey)!.push(task)
         }
 
-        // Convert to sorted array of groups
+        // Convert to sorted array of groups - all groups are visible date groups
         const taskGroups = Array.from(groupsMap.entries())
             .map(([key, tasks]) => ({
                 key,
-                label: key === '__no_date__' ? 'No date' : dayLabel(key),
+                label: dayLabel(key), // All keys are valid date keys (no "__no_date__")
                 tasks: tasks.sort((a, b) => {
                     // Sort by time if available, else by title
                     const timeA = a.due_at ? new Date(a.due_at).getTime() : 0
@@ -112,9 +118,7 @@ export default async function DashboardPage(props: { searchParams: { error?: str
                 })
             }))
             .sort((a, b) => {
-                // "No date" group goes last
-                if (a.key === '__no_date__') return 1
-                if (b.key === '__no_date__') return -1
+                // Sort groups by date (Today first, then Tomorrow, then future dates)
                 return a.key.localeCompare(b.key)
             })
 
