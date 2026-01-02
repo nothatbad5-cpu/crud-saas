@@ -3,7 +3,8 @@ import { getUsageStats, seedSampleTasks } from '@/lib/usage'
 import OnboardingModal from '@/components/OnboardingModal'
 import DashboardClient from '@/components/DashboardClient'
 import { redirect } from 'next/navigation'
-import { formatDayLabel, getDateKey } from '@/lib/date-format'
+import { dayLabel, startOfDayKey, formatDateISO } from '@/lib/date'
+import { analyzeCompletedTasks } from '@/lib/ai-suggestions'
 
 export default async function DashboardPage(props: { searchParams: { error?: string } }) {
     try {
@@ -53,8 +54,7 @@ export default async function DashboardPage(props: { searchParams: { error?: str
 
         // Filter and group upcoming tasks (pending, with due date today or later)
         const now = new Date()
-        now.setUTCHours(0, 0, 0, 0)
-        const todayKey = getDateKey(now)
+        const todayKey = startOfDayKey(now)
 
         const upcomingTasks = (allTasks || []).filter(task => {
             // Only pending tasks
@@ -63,7 +63,7 @@ export default async function DashboardPage(props: { searchParams: { error?: str
             // Must have a due date
             let taskDateKey: string | null = null
             if (task.due_at) {
-                taskDateKey = getDateKey(task.due_at)
+                taskDateKey = startOfDayKey(task.due_at)
             } else if (task.due_date) {
                 taskDateKey = task.due_date
             }
@@ -79,7 +79,7 @@ export default async function DashboardPage(props: { searchParams: { error?: str
         for (const task of upcomingTasks) {
             let dateKey: string
             if (task.due_at) {
-                dateKey = getDateKey(task.due_at)
+                dateKey = startOfDayKey(task.due_at)
             } else if (task.due_date) {
                 dateKey = task.due_date
             } else {
@@ -96,7 +96,7 @@ export default async function DashboardPage(props: { searchParams: { error?: str
         const taskGroups = Array.from(groupsMap.entries())
             .map(([key, tasks]) => ({
                 key,
-                label: formatDayLabel(key),
+                label: dayLabel(key),
                 tasks: tasks.sort((a, b) => {
                     // Sort by time if available, else by title
                     const timeA = a.due_at ? new Date(a.due_at).getTime() : 0
@@ -107,6 +107,23 @@ export default async function DashboardPage(props: { searchParams: { error?: str
             }))
             .sort((a, b) => a.key.localeCompare(b.key)) // Sort groups by date
 
+        // Get completed tasks sorted by updated_at (when they were completed) or created_at desc
+        const completedTasks = (allTasks || [])
+            .filter(task => task.status === 'completed')
+            .sort((a, b) => {
+                // Sort by updated_at if available (when completed), else created_at
+                const aDate = a.updated_at || a.created_at
+                const bDate = b.updated_at || b.created_at
+                return new Date(bDate).getTime() - new Date(aDate).getTime() // Most recent first
+            })
+
+        // Analyze completed tasks for AI suggestions
+        const aiSuggestions = analyzeCompletedTasks(completedTasks.map(t => ({
+            title: t.title,
+            updated_at: t.updated_at,
+            created_at: t.created_at
+        })))
+
         // Keep all tasks for calendar view, but pass grouped upcoming for table view
         const tasks = allTasks || []
 
@@ -116,6 +133,8 @@ export default async function DashboardPage(props: { searchParams: { error?: str
                 <DashboardClient
                     tasks={tasks}
                     upcomingGroups={taskGroups}
+                    completedTasks={completedTasks}
+                    aiSuggestions={aiSuggestions}
                     stats={stats}
                     error={searchParams.error}
                 />

@@ -141,3 +141,4 @@ All endpoints check authentication using `supabase.auth.getUser()`, which works 
 4. Batch operations (e.g., "mark all tasks complete")
 5. More sophisticated matching (fuzzy search)
 
+

@@ -96,19 +96,26 @@ export default function CalendarGrid({ tasks }: CalendarGridProps) {
     // Prepare agenda data for mobile view
     const agendaDates = useMemo(() => {
         const dates = Array.from(tasksByDate.keys()).sort()
-        const today = new Date().toISOString().split('T')[0]
-        const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
+        const today = new Date()
+        today.setUTCHours(0, 0, 0, 0)
+        const todayKey = today.toISOString().split('T')[0]
+        const tomorrow = new Date(today)
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
+        const tomorrowKey = tomorrow.toISOString().split('T')[0]
+        
+        // Use deterministic formatting to prevent hydration mismatches
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         
         return dates.map(dateKey => {
-            const date = new Date(dateKey + 'T00:00:00')
+            const date = new Date(dateKey + 'T00:00:00Z')
             const tasks = sortTasksByDueAt(tasksByDate.get(dateKey) || [])
             let label = dateKey
-            if (dateKey === today) label = 'Today'
-            else if (dateKey === tomorrow) label = 'Tomorrow'
+            if (dateKey === todayKey) label = 'Today'
+            else if (dateKey === tomorrowKey) label = 'Tomorrow'
             else {
-                // Use deterministic formatting to prevent hydration mismatches
-                const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'UTC' }).format(date)
-                const monthDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date)
+                const dayName = dayNames[date.getUTCDay()]
+                const monthDay = `${monthNames[date.getUTCMonth()]} ${date.getUTCDate()}`
                 label = `${dayName}, ${monthDay}`
             }
             return { dateKey, label, date, tasks }

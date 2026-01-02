@@ -128,6 +128,7 @@ export async function updateTaskDate(taskId: string, newDate: string, newTime?: 
 
 /**
  * Quick toggle task status
+ * If task has recurrence and is being marked completed, creates next occurrence
  */
 export async function toggleTaskStatus(taskId: string) {
     try {
@@ -138,10 +139,10 @@ export async function toggleTaskStatus(taskId: string) {
             return { error: 'Unauthorized' }
         }
 
-        // Get current status
+        // Get current task with all fields including recurrence
         const { data: task, error: selectError } = await supabase
             .from('tasks')
-            .select('status')
+            .select('status, recurrence_rule, recurrence_timezone, due_at, title, description, user_id')
             .eq('id', taskId)
             .eq('user_id', user.id)
             .single()
@@ -152,6 +153,37 @@ export async function toggleTaskStatus(taskId: string) {
 
         const newStatus = task.status === 'completed' ? 'pending' : 'completed'
 
+        // If marking as completed and task has recurrence, create next occurrence
+        if (newStatus === 'completed' && task.recurrence_rule && task.due_at) {
+            const { getNextOccurrenceFromRule } = await import('@/lib/recurrence')
+            const { extractDateFromDueAt, combineDateTimeToISO } = await import('@/lib/datetime-utils')
+            
+            const fromDate = new Date(task.due_at)
+            const nextDueAt = getNextOccurrenceFromRule(task.recurrence_rule, fromDate)
+            
+            if (nextDueAt) {
+                // Create next occurrence task
+                const nextDueDate = extractDateFromDueAt(nextDueAt)
+                
+                const { error: createError } = await supabase.from('tasks').insert({
+                    title: task.title,
+                    description: task.description,
+                    status: 'pending',
+                    due_at: nextDueAt,
+                    due_date: nextDueDate,
+                    recurrence_rule: task.recurrence_rule,
+                    recurrence_timezone: task.recurrence_timezone || 'UTC',
+                    user_id: user.id,
+                })
+
+                if (createError) {
+                    console.error('Error creating next recurrence:', createError)
+                    // Continue with status update even if recurrence creation fails
+                }
+            }
+        }
+
+        // Update current task status
         const { error: updateError } = await supabase
             .from('tasks')
             .update({ status: newStatus })

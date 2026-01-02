@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import UpcomingTasks from '@/components/UpcomingTasks'
+import CompletedTasks from '@/components/CompletedTasks'
+import AISuggestions from '@/components/AISuggestions'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import ViewToggle from '@/components/ViewToggle'
 import CreateTaskModal from '@/components/modals/CreateTaskModal'
@@ -18,12 +20,14 @@ interface TaskGroup {
 interface DashboardClientProps {
     tasks: any[]
     upcomingGroups: TaskGroup[]
+    completedTasks: any[]
+    aiSuggestions: any[]
     stats: any
     error?: string
 }
 
-export default function DashboardClient({ tasks, upcomingGroups, stats, error }: DashboardClientProps) {
-    const [view, setView] = useState<'table' | 'calendar'>('table')
+export default function DashboardClient({ tasks, upcomingGroups, completedTasks, aiSuggestions, stats, error }: DashboardClientProps) {
+    const [view, setView] = useState<'table' | 'completed' | 'calendar'>('table')
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const router = useRouter()
 
@@ -36,13 +40,20 @@ export default function DashboardClient({ tasks, upcomingGroups, stats, error }:
         },
         {
             key: 't',
-            handler: () => setView(v => v === 'table' ? 'calendar' : 'table'),
+            handler: () => setView(v => {
+                if (v === 'table') return 'completed'
+                if (v === 'completed') return 'calendar'
+                return 'table'
+            }),
             description: 'Toggle View'
         }
     ])
 
+    // Calculate bottom padding to account for shortcuts panel (72px mobile, 56px desktop) + FAB + safe area
+    // Mobile: shortcuts hidden, FAB visible = ~80px
+    // Desktop: shortcuts ~56px + FAB ~64px = ~120px
     return (
-        <div className="w-full min-h-full relative" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 140px)' }}>
+        <div className="w-full min-h-full relative pb-[calc(env(safe-area-inset-bottom)+140px)] md:pb-[calc(env(safe-area-inset-bottom)+160px)]">
             {/* Error Banner */}
             {error && (
                 <div className="bg-[#1f1f1f] border-l-4 border-[#262626] p-4 mb-6">
@@ -109,7 +120,12 @@ export default function DashboardClient({ tasks, upcomingGroups, stats, error }:
 
             {/* Conditional View Rendering */}
             {view === 'table' ? (
-                <UpcomingTasks groups={upcomingGroups} />
+                <>
+                    <AISuggestions suggestions={aiSuggestions} />
+                    <UpcomingTasks groups={upcomingGroups} />
+                </>
+            ) : view === 'completed' ? (
+                <CompletedTasks tasks={completedTasks} />
             ) : (
                 <CalendarGrid tasks={tasks} />
             )}

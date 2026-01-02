@@ -89,14 +89,17 @@ export async function createTask(formData: FormData) {
         })
 
         if (error) {
-            redirect(`/dashboard/new?error=${encodeURIComponent(error.message || 'Could not create task')}`)
+            // Redirect to dashboard with error, not back to create page
+            redirect(`/dashboard?error=${encodeURIComponent(error.message || 'Could not create task')}`)
         }
 
         revalidatePath('/dashboard')
+        // Always redirect to dashboard on success
         redirect('/dashboard')
     } catch (error) {
         console.error('Error in createTask:', error)
-        redirect(`/dashboard/new?error=${encodeURIComponent('An unexpected error occurred. Please try again.')}`)
+        // Redirect to dashboard with error, not back to create page
+        redirect(`/dashboard?error=${encodeURIComponent('An unexpected error occurred. Please try again.')}`)
     }
 }
 

@@ -80,3 +80,4 @@ If the issue is build-time env vars:
 
 **Conclusion:** Code is correct, localhost works perfectly. The production issue is almost certainly due to env vars not being available at build time. **Redeploy on Vercel to fix.**
 
+

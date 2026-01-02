@@ -138,13 +138,15 @@ export default function DayTimelineView({ selectedDate, tasks, onCreateTask }: D
     }
 
     // Use deterministic formatting to prevent hydration mismatches
-    const dateStr = new Intl.DateTimeFormat('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-        timeZone: 'UTC'
-    }).format(selectedDate)
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    const d = new Date(selectedDate)
+    d.setUTCHours(0, 0, 0, 0)
+    const dayName = dayNames[d.getUTCDay()]
+    const monthName = monthNames[d.getUTCMonth()]
+    const day = d.getUTCDate()
+    const year = d.getUTCFullYear()
+    const dateStr = `${dayName}, ${monthName} ${day}, ${year}`
 
     return (
         <div className="h-full flex flex-col bg-[#0b0b0b]">

@@ -201,3 +201,4 @@ After fixing the issue:
 
 **Priority:** Check Vercel function logs first - they will reveal the exact error causing the catch block to execute.
 
+

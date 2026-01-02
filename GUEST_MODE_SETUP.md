@@ -67,3 +67,4 @@ Once anonymous auth is enabled:
 
 **Next Step:** Enable anonymous authentication in Supabase dashboard, then test again.
 
+

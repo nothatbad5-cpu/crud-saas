@@ -13,6 +13,8 @@ export const ActionSchema = z.discriminatedUnion('type', [
         description: z.string().max(500).optional(),
         status: z.enum(['pending', 'completed']).optional(),
         dueDate: z.string().optional(), // ISO date string or natural language
+        recurrenceRule: z.string().optional(), // Recurrence rule string (e.g., "WEEKLY:MO", "DAILY", "MONTHLY:1")
+        recurrenceTimezone: z.string().optional(), // Timezone for recurrence (default: UTC)
     }),
     // Update an existing task
     z.object({
@@ -28,6 +30,8 @@ export const ActionSchema = z.discriminatedUnion('type', [
             description: z.string().max(500).optional(),
             status: z.enum(['pending', 'completed']).optional(),
             dueDate: z.string().nullable().optional(), // ISO date string or natural language, null to clear
+            recurrenceRule: z.string().nullable().optional(), // Recurrence rule string, null to clear
+            recurrenceTimezone: z.string().optional(), // Timezone for recurrence
         }).refine(data => Object.keys(data).length > 0, {
             message: 'Must provide at least one field to update',
         }),

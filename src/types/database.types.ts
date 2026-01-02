@@ -23,6 +23,8 @@ export interface Database {
           start_time: string | null
           end_time: string | null
           due_at: string | null
+          recurrence_rule: string | null
+          recurrence_timezone: string | null
         }
         Insert: {
           id?: string
@@ -37,6 +39,8 @@ export interface Database {
           start_time?: string | null
           end_time?: string | null
           due_at?: string | null
+          recurrence_rule?: string | null
+          recurrence_timezone?: string | null
         }
         Update: {
           id?: string
@@ -51,6 +55,8 @@ export interface Database {
           start_time?: string | null
           end_time?: string | null
           due_at?: string | null
+          recurrence_rule?: string | null
+          recurrence_timezone?: string | null
         }
         Relationships: []
       }

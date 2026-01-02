@@ -75,14 +75,22 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                 }
             }
             
-            const { error } = await supabase.from('tasks').insert({
+            const insertData: any = {
                 title: action.title,
                 description: action.description || null,
                 status: action.status || 'pending',
                 due_date,
                 due_at,
                 user_id: userId,
-            })
+            }
+
+            // Add recurrence fields if provided
+            if (action.recurrenceRule) {
+                insertData.recurrence_rule = action.recurrenceRule
+                insertData.recurrence_timezone = action.recurrenceTimezone || 'UTC'
+            }
+
+            const { error } = await supabase.from('tasks').insert(insertData)
             
             if (error) {
                 return {
@@ -189,6 +197,19 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                         }
                     }
                 }
+            }
+            
+            // Handle recurrence fields
+            if (action.patch.recurrenceRule !== undefined) {
+                updateData.recurrence_rule = action.patch.recurrenceRule
+                if (action.patch.recurrenceTimezone !== undefined) {
+                    updateData.recurrence_timezone = action.patch.recurrenceTimezone || 'UTC'
+                } else if (action.patch.recurrenceRule !== null) {
+                    // If setting recurrence but no timezone provided, default to UTC
+                    updateData.recurrence_timezone = 'UTC'
+                }
+            } else if (action.patch.recurrenceTimezone !== undefined) {
+                updateData.recurrence_timezone = action.patch.recurrenceTimezone
             }
             
             // Update all matched tasks

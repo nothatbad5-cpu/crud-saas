@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toggleTaskStatus } from '@/app/dashboard/calendar-actions'
-import { formatDayLabel, formatTimeHHMM } from '@/lib/date-format'
+import { formatTimeISO, formatDateISO, startOfDayKey } from '@/lib/date'
 import { useRouter } from 'next/navigation'
 
 interface Task {
@@ -12,6 +12,7 @@ interface Task {
     status: 'pending' | 'completed'
     due_at: string | null
     due_date: string | null
+    created_at: string
 }
 
 interface TaskGroup {
@@ -24,12 +25,42 @@ interface UpcomingTasksProps {
     groups: TaskGroup[]
 }
 
+interface UndoState {
+    taskId: string
+    task: Task
+    originalGroups: TaskGroup[]
+    timer: NodeJS.Timeout
+}
+
 export default function UpcomingTasks({ groups: initialGroups }: UpcomingTasksProps) {
     const [groups, setGroups] = useState(initialGroups)
     const [completingIds, setCompletingIds] = useState<Set<string>>(new Set())
+    const [undoState, setUndoState] = useState<UndoState | null>(null)
     const router = useRouter()
 
+    // Cleanup undo timer on unmount
+    useEffect(() => {
+        return () => {
+            if (undoState?.timer) {
+                clearTimeout(undoState.timer)
+            }
+        }
+    }, [undoState])
+
     const handleDone = async (taskId: string) => {
+        // Find the task before removing it
+        let taskToComplete: Task | null = null
+        let originalGroupsSnapshot = groups
+        for (const group of groups) {
+            const task = group.tasks.find(t => t.id === taskId)
+            if (task) {
+                taskToComplete = task
+                break
+            }
+        }
+
+        if (!taskToComplete) return
+
         // Optimistic update: remove task immediately
         setCompletingIds(prev => new Set(prev).add(taskId))
         
@@ -46,22 +77,68 @@ export default function UpcomingTasks({ groups: initialGroups }: UpcomingTasksPr
             
             if (result.error) {
                 // Revert on error
-                setGroups(initialGroups)
+                setGroups(originalGroupsSnapshot)
                 console.error('Failed to complete task:', result.error)
+                setCompletingIds(prev => {
+                    const next = new Set(prev)
+                    next.delete(taskId)
+                    return next
+                })
             } else {
-                // Refresh to sync with server
-                router.refresh()
+                // Set up undo state
+                const timer = setTimeout(() => {
+                    setUndoState(null)
+                    router.refresh()
+                }, 8000)
+
+                setUndoState({
+                    taskId,
+                    task: taskToComplete,
+                    originalGroups: originalGroupsSnapshot,
+                    timer
+                })
             }
         } catch (error) {
             // Revert on error
-            setGroups(initialGroups)
+            setGroups(originalGroupsSnapshot)
             console.error('Error completing task:', error)
+            setCompletingIds(prev => {
+                const next = new Set(prev)
+                next.delete(taskId)
+                return next
+            })
         } finally {
             setCompletingIds(prev => {
                 const next = new Set(prev)
                 next.delete(taskId)
                 return next
             })
+        }
+    }
+
+    const handleUndo = async () => {
+        if (!undoState) return
+
+        // Clear the timer
+        clearTimeout(undoState.timer)
+
+        // Restore task to groups
+        setGroups(undoState.originalGroups)
+        setUndoState(null)
+
+        try {
+            // Revert status back to pending
+            const result = await toggleTaskStatus(undoState.taskId)
+            if (result.error) {
+                console.error('Failed to undo task:', result.error)
+                // Still refresh to sync with server
+                router.refresh()
+            } else {
+                router.refresh()
+            }
+        } catch (error) {
+            console.error('Error undoing task:', error)
+            router.refresh()
         }
     }
 
@@ -85,33 +162,46 @@ export default function UpcomingTasks({ groups: initialGroups }: UpcomingTasksPr
                     {/* Tasks for this day */}
                     <div className="space-y-2">
                         {group.tasks.map((task) => {
-                            const timeStr = task.due_at ? formatTimeHHMM(task.due_at) : null
-                            const showTime = timeStr && timeStr !== '00:00'
+                            // Format due date and time
+                            let dueDateStr: string | null = null
+                            let dueTimeStr: string | null = null
+                            
+                            if (task.due_at) {
+                                dueDateStr = formatDateISO(task.due_at)
+                                dueTimeStr = formatTimeISO(task.due_at)
+                                if (dueTimeStr === '00:00') {
+                                    dueTimeStr = null // Omit time if midnight
+                                }
+                            } else if (task.due_date) {
+                                dueDateStr = task.due_date
+                            }
+                            
+                            const createdDateStr = formatDateISO(task.created_at)
                             
                             return (
                                 <div
                                     key={task.id}
                                     className="bg-[#111] border border-[#262626] rounded-xl p-3 flex items-start justify-between gap-3 hover:border-[#404040] transition-colors"
                                 >
-                                    {/* Left: Title + Description */}
+                                    {/* Left: Title + Metadata */}
                                     <div className="flex-1 min-w-0">
-                                        <h4 className="text-sm font-medium text-gray-100 break-words">
+                                        <h4 className="text-sm font-bold text-gray-100 break-words mb-1">
                                             {task.title}
                                         </h4>
-                                        {task.description && (
-                                            <p className="text-xs text-gray-400 mt-1 break-words line-clamp-1">
-                                                {task.description}
-                                            </p>
-                                        )}
+                                        <div className="flex flex-col gap-0.5 text-xs text-gray-400">
+                                            {dueDateStr && (
+                                                <div>
+                                                    Due: {dueDateStr}{dueTimeStr ? ` at ${dueTimeStr}` : ''}
+                                                </div>
+                                            )}
+                                            <div>
+                                                Created: {createdDateStr}
+                                            </div>
+                                        </div>
                                     </div>
                                     
-                                    {/* Right: Time + Done button */}
+                                    {/* Right: Done button */}
                                     <div className="flex items-center gap-3 flex-shrink-0">
-                                        {showTime && (
-                                            <span className="text-xs text-gray-400 font-medium">
-                                                {timeStr}
-                                            </span>
-                                        )}
                                         <button
                                             onClick={() => handleDone(task.id)}
                                             disabled={completingIds.has(task.id)}
@@ -126,7 +216,21 @@ export default function UpcomingTasks({ groups: initialGroups }: UpcomingTasksPr
                     </div>
                 </div>
             ))}
+
+            {/* Undo Toast */}
+            {undoState && (
+                <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-[#1f1f1f] border border-[#262626] rounded-lg px-4 py-3 shadow-lg z-50 flex items-center gap-3" style={{ bottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+                    <span className="text-sm text-gray-100">Task completed.</span>
+                    <button
+                        onClick={handleUndo}
+                        className="text-sm font-medium text-[#f5f5f5] hover:text-gray-100 underline"
+                    >
+                        Undo
+                    </button>
+                </div>
+            )}
         </div>
     )
 }
+
 
