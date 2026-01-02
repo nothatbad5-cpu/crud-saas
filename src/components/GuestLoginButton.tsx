@@ -12,13 +12,21 @@ export default function GuestLoginButton() {
         setIsLoading(true)
         try {
             const supabase = createClient()
-            const { error } = await supabase.auth.signInAnonymously()
+            const { data, error } = await supabase.auth.signInAnonymously()
             
-            if (error) {
+            if (error || !data.user) {
                 console.error('Guest login error:', error)
                 router.push('/login?error=' + encodeURIComponent('Failed to sign in as guest. Please try again.'))
                 return
             }
+            
+            // Set guest_id cookie - call server action to set cookie
+            const guestId = data.user.id
+            await fetch('/api/auth/set-guest-id', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ guestId }),
+            })
             
             router.push('/dashboard')
             router.refresh()

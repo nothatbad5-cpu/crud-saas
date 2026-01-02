@@ -20,8 +20,9 @@ export function computeRequiresConfirm(actions: Action[]): boolean {
 /**
  * Check if delete actions have ambiguous matches (multiple tasks)
  * Returns true if any delete action would match multiple tasks
+ * Supports both authenticated users (user_id) and guests (guest_id)
  */
-export async function checkAmbiguousDeletes(userId: string, actions: Action[]): Promise<{
+export async function checkAmbiguousDeletes(identityId: string, actions: Action[], isGuest: boolean = false): Promise<{
     isAmbiguous: boolean
     message?: string
 }> {
@@ -31,13 +32,20 @@ export async function checkAmbiguousDeletes(userId: string, actions: Action[]): 
         if (action.type === 'delete' && action.match.title && !action.match.id) {
             const title = action.match.title.trim()
             
-            // Check for multiple matches
-            const { data: tasks } = await supabase
+            // Check for multiple matches - use user_id OR guest_id
+            let query = supabase
                 .from('tasks')
                 .select('id, title')
-                .eq('user_id', userId)
                 .ilike('title', `%${title}%`)
                 .limit(10)
+            
+            if (isGuest) {
+                query = query.eq('guest_id', identityId)
+            } else {
+                query = query.eq('user_id', identityId)
+            }
+            
+            const { data: tasks } = await query
             
             if (tasks && tasks.length > 1) {
                 const taskTitles = tasks.map(t => t.title).slice(0, 5)

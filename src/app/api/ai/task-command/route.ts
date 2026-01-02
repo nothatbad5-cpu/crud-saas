@@ -11,6 +11,7 @@ import { executeActions } from '@/lib/ai-command/executor'
 import { revalidatePath } from 'next/cache'
 import crypto from 'crypto'
 import { randomUUID } from 'crypto'
+import { cookies } from 'next/headers'
 
 /**
  * POST /api/ai/task-command
@@ -24,9 +25,13 @@ export async function POST(request: NextRequest) {
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         
-        // STRICT AUTH CHECK - return 401 if no user
-        if (authError || !user) {
-            console.error(`[${requestId}] Auth failed:`, authError?.message || 'No user')
+        // Get guest_id from cookie if no authenticated user
+        const cookieStore = await cookies()
+        const guestId = cookieStore.get('guest_id')?.value
+        
+        // STRICT IDENTITY CHECK - must have user OR guest_id
+        if ((authError || !user) && !guestId) {
+            console.error(`[${requestId}] Auth failed:`, authError?.message || 'No user or guest_id')
             return NextResponse.json(
                 { 
                     ok: false,
@@ -37,7 +42,22 @@ export async function POST(request: NextRequest) {
             )
         }
         
-        console.log(`[${requestId}] User authenticated:`, user.id)
+        const identityId = user?.id || guestId
+        const isGuest = !user && !!guestId
+        
+        if (!identityId) {
+            console.error(`[${requestId}] No identity found`)
+            return NextResponse.json(
+                { 
+                    ok: false,
+                    error: 'No identity found',
+                    requestId 
+                },
+                { status: 401 }
+            )
+        }
+        
+        console.log(`[${requestId}] Identity:`, isGuest ? `guest ${identityId}` : `user ${identityId}`)
         
         const body = await request.json()
         const { input } = body
@@ -94,8 +114,8 @@ export async function POST(request: NextRequest) {
                     action.title = extractedDate.title
                 }
                 
-                // Check if task with same normalized title already exists
-                const existingTask = await findTaskByTitle(user.id, action.title)
+                // Check if task with same normalized title already exists (use identity)
+                const existingTask = await findTaskByTitle(identityId, action.title, isGuest)
                 
                 if (existingTask) {
                     // Convert create to update
@@ -163,7 +183,7 @@ export async function POST(request: NextRequest) {
         
         // Check for ambiguous deletes (multiple matches)
         if (requiresConfirm) {
-            const ambiguousCheck = await checkAmbiguousDeletes(user.id, validatedActions)
+            const ambiguousCheck = await checkAmbiguousDeletes(identityId, validatedActions, isGuest)
             if (ambiguousCheck.isAmbiguous) {
                 // Return noop for ambiguous deletes
                 return NextResponse.json({
@@ -179,7 +199,7 @@ export async function POST(request: NextRequest) {
         // If no confirmation needed, execute immediately
         if (!requiresConfirm) {
             console.log(`[${requestId}] Executing ${validatedActions.length} actions`)
-            const result = await executeActions(user.id, validatedActions)
+            const result = await executeActions(user?.id || null, validatedActions, guestId || null)
             
             // Log each action result
             for (const actionResult of result.results) {
@@ -230,7 +250,7 @@ export async function POST(request: NextRequest) {
         
         // Confirmation required - generate token and store pending actions
         const confirmToken = crypto.randomBytes(32).toString('hex')
-        storePendingActions(confirmToken, user.id, validatedActions, preview)
+        storePendingActions(confirmToken, identityId, validatedActions, preview)
         
         console.log(`[${requestId}] Confirmation required, token: ${confirmToken.substring(0, 8)}...`)
         

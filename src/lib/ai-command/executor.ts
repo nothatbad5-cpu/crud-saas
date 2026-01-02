@@ -23,11 +23,28 @@ interface ExecutionResult {
     }>
 }
 
-export async function executeActions(userId: string, actions: Action[]): Promise<ExecutionResult> {
+export async function executeActions(userId: string | null, actions: Action[], guestId?: string | null): Promise<ExecutionResult> {
     const supabase = await createClient()
     let totalAffected = 0
     const messages: string[] = []
     const results: ExecutionResult['results'] = []
+    
+    // Determine identity: use userId if provided, else guestId
+    const identityId = userId || guestId
+    const isGuest = !userId && !!guestId
+    
+    if (!identityId) {
+        return {
+            success: false,
+            message: 'No user or guest identity',
+            affectedCount: 0,
+            results: [{
+                type: 'create',
+                ok: false,
+                error: 'No user or guest identity'
+            }]
+        }
+    }
     
     for (const action of actions) {
         if (action.type === 'noop') {
@@ -36,20 +53,22 @@ export async function executeActions(userId: string, actions: Action[]): Promise
         }
         
         if (action.type === 'create') {
-            // Check usage limits
-            const { allowed, reason } = await canCreateTask(userId)
-            if (!allowed) {
-                results.push({
-                    type: 'create',
-                    ok: false,
-                    title: action.title,
-                    error: reason || 'Cannot create task: limit reached'
-                })
-                return {
-                    success: false,
-                    message: reason || 'Cannot create task: limit reached',
-                    affectedCount: totalAffected,
-                    results
+            // Check usage limits (only for authenticated users, not guests)
+            if (!isGuest && userId) {
+                const { allowed, reason } = await canCreateTask(userId)
+                if (!allowed) {
+                    results.push({
+                        type: 'create',
+                        ok: false,
+                        title: action.title,
+                        error: reason || 'Cannot create task: limit reached'
+                    })
+                    return {
+                        success: false,
+                        message: reason || 'Cannot create task: limit reached',
+                        affectedCount: totalAffected,
+                        results
+                    }
                 }
             }
             
@@ -97,7 +116,8 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                 status: action.status || 'pending',
                 due_date,
                 due_at,
-                user_id: userId,
+                user_id: isGuest ? null : userId,
+                guest_id: isGuest ? guestId : null,
             }
 
             // Add recurrence fields if provided
@@ -107,6 +127,7 @@ export async function executeActions(userId: string, actions: Action[]): Promise
             }
 
             // Insert and verify the task was actually created - MUST return full row
+            // Note: guest_id may not be in TypeScript types but exists in DB
             const { data: insertedTask, error } = await supabase
                 .from('tasks')
                 .insert(insertData)
@@ -131,21 +152,43 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                 }
             }
             
-            // Verify user_id matches (RLS safety check)
-            if (insertedTask.user_id !== userId) {
-                const errorMsg = 'Inserted task user_id mismatch - RLS violation'
-                console.error('RLS violation:', { insertedTask, userId })
-                results.push({
-                    type: 'create',
-                    ok: false,
-                    title: action.title,
-                    error: errorMsg
-                })
-                return {
-                    success: false,
-                    message: `Failed to create task: ${errorMsg}`,
-                    affectedCount: totalAffected,
-                    results
+            // Verify identity matches (RLS safety check)
+            // For guests, verify guest_id matches (may not be in TypeScript types)
+            if (isGuest && guestId) {
+                const insertedTaskAny = insertedTask as any
+                const insertedGuestId = insertedTaskAny.guest_id
+                if (insertedGuestId !== guestId) {
+                    const errorMsg = 'Inserted task guest_id mismatch - RLS violation'
+                    console.error('RLS violation:', { insertedTask, guestId, insertedGuestId })
+                    results.push({
+                        type: 'create',
+                        ok: false,
+                        title: action.title,
+                        error: errorMsg
+                    })
+                    return {
+                        success: false,
+                        message: `Failed to create task: ${errorMsg}`,
+                        affectedCount: totalAffected,
+                        results
+                    }
+                }
+            } else if (!isGuest && userId) {
+                if (insertedTask.user_id !== userId) {
+                    const errorMsg = 'Inserted task user_id mismatch - RLS violation'
+                    console.error('RLS violation:', { insertedTask, userId })
+                    results.push({
+                        type: 'create',
+                        ok: false,
+                        title: action.title,
+                        error: errorMsg
+                    })
+                    return {
+                        success: false,
+                        message: `Failed to create task: ${errorMsg}`,
+                        affectedCount: totalAffected,
+                        results
+                    }
                 }
             }
             
@@ -161,8 +204,26 @@ export async function executeActions(userId: string, actions: Action[]): Promise
         }
         
         if (action.type === 'update') {
-            // Find matching tasks
-            let query = supabase.from('tasks').select('id, title').eq('user_id', userId)
+            // Find matching tasks - use user_id OR guest_id
+            let query = supabase.from('tasks').select('id, title')
+            
+            if (isGuest && guestId) {
+                query = query.eq('guest_id', guestId)
+            } else if (!isGuest && userId) {
+                query = query.eq('user_id', userId)
+            } else {
+                results.push({
+                    type: 'update',
+                    ok: false,
+                    error: 'No identity for update'
+                })
+                return {
+                    success: false,
+                    message: 'No identity for update',
+                    affectedCount: totalAffected,
+                    results
+                }
+            }
             
             if (action.match.id) {
                 query = query.eq('id', action.match.id)
@@ -350,13 +411,33 @@ export async function executeActions(userId: string, actions: Action[]): Promise
             let tasks: any[] = []
             
             if (action.match.id) {
-                // Direct ID match
-                const { data, error: fetchError } = await supabase
+                // Direct ID match - use user_id OR guest_id
+                let query = supabase
                     .from('tasks')
                     .select('id, title')
-                    .eq('user_id', userId)
                     .eq('id', action.match.id)
                     .limit(1)
+                
+                if (isGuest && guestId) {
+                    query = query.eq('guest_id', guestId)
+                } else if (!isGuest && userId) {
+                    query = query.eq('user_id', userId)
+                } else {
+                    results.push({
+                        type: 'delete',
+                        ok: false,
+                        title: action.match.id,
+                        error: 'No identity for delete'
+                    })
+                    return {
+                        success: false,
+                        message: 'No identity for delete',
+                        affectedCount: totalAffected,
+                        results
+                    }
+                }
+                
+                const { data, error: fetchError } = await query
                 
                 if (fetchError) {
                     results.push({
@@ -378,13 +459,33 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                 // Smart title matching: exact -> case-insensitive exact -> contains (only if single result)
                 const title = action.match.title.trim()
                 
-                // 1. Try exact match (case-sensitive)
-                let { data, error: fetchError } = await supabase
+                // 1. Try exact match (case-sensitive) - use user_id OR guest_id
+                let query = supabase
                     .from('tasks')
                     .select('id, title')
-                    .eq('user_id', userId)
                     .eq('title', title)
                     .limit(action.limit || 100)
+                
+                if (isGuest && guestId) {
+                    query = query.eq('guest_id', guestId)
+                } else if (!isGuest && userId) {
+                    query = query.eq('user_id', userId)
+                } else {
+                    results.push({
+                        type: 'delete',
+                        ok: false,
+                        title: action.match.title,
+                        error: 'No identity for delete'
+                    })
+                    return {
+                        success: false,
+                        message: 'No identity for delete',
+                        affectedCount: totalAffected,
+                        results
+                    }
+                }
+                
+                let { data, error: fetchError } = await query
                 
                 if (fetchError) {
                     results.push({
@@ -404,13 +505,33 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                 if (data && data.length > 0) {
                     tasks = data
                 } else {
-                    // 2. Try case-insensitive exact match
-                    const { data: data2, error: fetchError2 } = await supabase
+                    // 2. Try case-insensitive exact match - use user_id OR guest_id
+                    let query2 = supabase
                         .from('tasks')
                         .select('id, title')
-                        .eq('user_id', userId)
                         .ilike('title', title)
                         .limit(action.limit || 100)
+                    
+                    if (isGuest && guestId) {
+                        query2 = query2.eq('guest_id', guestId)
+                    } else if (userId) {
+                        query2 = query2.eq('user_id', userId)
+                    } else {
+                        results.push({
+                            type: 'delete',
+                            ok: false,
+                            title: action.match.title,
+                            error: 'No identity for delete'
+                        })
+                        return {
+                            success: false,
+                            message: 'No identity for delete',
+                            affectedCount: totalAffected,
+                            results
+                        }
+                    }
+                    
+                    const { data: data2, error: fetchError2 } = await query2
                     
                     if (fetchError2) {
                         results.push({
@@ -430,13 +551,33 @@ export async function executeActions(userId: string, actions: Action[]): Promise
                     if (data2 && data2.length > 0) {
                         tasks = data2
                     } else {
-                        // 3. Try contains match (only if single result expected)
-                        const { data: data3, error: fetchError3 } = await supabase
+                        // 3. Try contains match (only if single result expected) - use user_id OR guest_id
+                        let query3 = supabase
                             .from('tasks')
                             .select('id, title')
-                            .eq('user_id', userId)
                             .ilike('title', `%${title}%`)
                             .limit(action.limit || 100)
+                        
+                        if (isGuest && guestId) {
+                            query3 = query3.eq('guest_id', guestId)
+                        } else if (userId) {
+                            query3 = query3.eq('user_id', userId)
+                        } else {
+                            results.push({
+                                type: 'delete',
+                                ok: false,
+                                title: action.match.title,
+                                error: 'No identity for delete'
+                            })
+                            return {
+                                success: false,
+                                message: 'No identity for delete',
+                                affectedCount: totalAffected,
+                                results
+                            }
+                        }
+                        
+                        const { data: data3, error: fetchError3 } = await query3
                         
                         if (fetchError3) {
                             results.push({
@@ -536,12 +677,31 @@ export async function executeActions(userId: string, actions: Action[]): Promise
         }
         
         if (action.type === 'bulk_delete_all') {
-            // Delete all user's tasks
-            const { data: deletedTasks, error: deleteError } = await supabase
+            // Delete all tasks - use user_id OR guest_id
+            let query = supabase
                 .from('tasks')
                 .delete()
-                .eq('user_id', userId)
                 .select('id')
+            
+            if (isGuest && guestId) {
+                query = query.eq('guest_id', guestId)
+            } else if (userId) {
+                query = query.eq('user_id', userId)
+            } else {
+                results.push({
+                    type: 'bulk_delete_all',
+                    ok: false,
+                    error: 'No identity for bulk delete'
+                })
+                return {
+                    success: false,
+                    message: 'No identity for bulk delete',
+                    affectedCount: totalAffected,
+                    results
+                }
+            }
+            
+            const { data: deletedTasks, error: deleteError } = await query
             
             if (deleteError) {
                 results.push({

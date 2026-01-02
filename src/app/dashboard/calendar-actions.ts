@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { canCreateTask } from '@/lib/usage'
 import { combineDateTimeToISO, extractDateFromDueAt } from '@/lib/datetime-utils'
+import { cookies } from 'next/headers'
 
 /**
  * Create a task with a specific due date and optional time
@@ -13,15 +14,24 @@ export async function createTaskWithDate(formData: FormData) {
     try {
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
+        
+        // Get guest_id from cookie if no authenticated user
+        const cookieStore = await cookies()
+        const guestId = cookieStore.get('guest_id')?.value
 
-        if (authError || !user) {
+        // Must have user OR guest_id
+        if ((authError || !user) && !guestId) {
             redirect('/login')
         }
+        
+        const isGuest = !user && !!guestId
 
-        // Check usage limits
-        const { allowed, reason } = await canCreateTask(user.id)
-        if (!allowed) {
-            return { error: reason }
+        // Check usage limits (only for authenticated users)
+        if (!isGuest && user) {
+            const { allowed, reason } = await canCreateTask(user.id)
+            if (!allowed) {
+                return { error: reason }
+            }
         }
 
         const title = formData.get('title') as string
@@ -59,7 +69,7 @@ export async function createTaskWithDate(formData: FormData) {
         // Always set due_date = due_at::date for backwards compatibility
         const due_date = due_at ? extractDateFromDueAt(due_at) : dueDate
 
-        const { error } = await supabase.from('tasks').insert({
+        const insertData: any = {
             title: title.trim(),
             description: description || null,
             status,
@@ -67,8 +77,20 @@ export async function createTaskWithDate(formData: FormData) {
             due_at,   // Primary field
             start_time: start_time || null, // Keep for backwards compatibility
             end_time: end_time || null,     // Keep for backwards compatibility
-            user_id: user.id,
-        })
+        }
+        
+        // Set user_id OR guest_id (never both)
+        if (isGuest && guestId) {
+            insertData.guest_id = guestId
+            insertData.user_id = null
+        } else if (user) {
+            insertData.user_id = user.id
+            insertData.guest_id = null
+        } else {
+            return { error: 'No identity found' }
+        }
+        
+        const { error } = await supabase.from('tasks').insert(insertData)
 
         if (error) {
             console.error('Error creating task:', error)

@@ -5,6 +5,7 @@ import DashboardClient from '@/components/DashboardClient'
 import { redirect } from 'next/navigation'
 import { dayLabel, startOfDayKey, formatDateISO } from '@/lib/date'
 import { analyzeCompletedTasks } from '@/lib/ai-suggestions'
+import { cookies } from 'next/headers'
 
 export default async function DashboardPage(props: { searchParams: { error?: string } }) {
     try {
@@ -12,25 +13,51 @@ export default async function DashboardPage(props: { searchParams: { error?: str
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-        if (authError || !user) {
+        // Get guest_id from cookie if no authenticated user
+        const cookieStore = await cookies()
+        const guestId = cookieStore.get('guest_id')?.value
+
+        // If no user and no guest_id, redirect to login
+        if ((authError || !user) && !guestId) {
             redirect('/login')
         }
 
-        // Phase 3: Seed logic (Idempotent) - non-critical, continue on error
-        try {
-            await seedSampleTasks(user.id)
-        } catch (error) {
-            console.error('Failed to seed sample tasks:', error)
-            // Continue - non-critical operation
+        // Determine identity: use user.id if authenticated, else guest_id
+        const identityId = user?.id || guestId
+        const isGuest = !user && !!guestId
+
+        if (!identityId) {
+            redirect('/login')
         }
 
-        // Phase 3: Get Usage Stats
+        // Phase 3: Seed logic (Idempotent) - non-critical, continue on error (only for authenticated users)
+        if (user && !isGuest) {
+            try {
+                await seedSampleTasks(user.id)
+            } catch (error) {
+                console.error('Failed to seed sample tasks:', error)
+                // Continue - non-critical operation
+            }
+        }
+
+        // Phase 3: Get Usage Stats (only for authenticated users)
         let stats
-        try {
-            stats = await getUsageStats(user.id)
-        } catch (error) {
-            console.error('Failed to get usage stats:', error)
-            // Provide default stats on error
+        if (user && !isGuest) {
+            try {
+                stats = await getUsageStats(user.id)
+            } catch (error) {
+                console.error('Failed to get usage stats:', error)
+                // Provide default stats on error
+                stats = {
+                    tasksCount: 0,
+                    limit: 5,
+                    isPro: false,
+                    isSampleSeeded: false,
+                    hasSeenOnboarding: false,
+                }
+            }
+        } else {
+            // Guest users get default stats
             stats = {
                 tasksCount: 0,
                 limit: 5,
@@ -40,12 +67,24 @@ export default async function DashboardPage(props: { searchParams: { error?: str
             }
         }
 
-        // Get all tasks
-        const { data: allTasks, error: tasksError } = await supabase
+        // Get all tasks - filter by user_id OR guest_id (same identity)
+        let query = supabase
             .from('tasks')
             .select('*')
-            .eq('user_id', user.id)
             .order('created_at', { ascending: false })
+        
+        if (user && !isGuest) {
+            // Authenticated user: filter by user_id
+            query = query.eq('user_id', user.id)
+        } else if (guestId) {
+            // Guest user: filter by guest_id
+            query = query.eq('guest_id', guestId)
+        } else {
+            // No identity - return empty
+            query = query.eq('id', '00000000-0000-0000-0000-000000000000') // Impossible match
+        }
+        
+        const { data: allTasks, error: tasksError } = await query
 
         if (tasksError) {
             console.error('Failed to fetch tasks:', tasksError)
@@ -60,7 +99,7 @@ export default async function DashboardPage(props: { searchParams: { error?: str
             // Only pending tasks
             if (task.status !== 'pending') return false
             
-            // Must have a due date
+            // Include tasks with no due date in "No date" group
             let taskDateKey: string | null = null
             if (task.due_at) {
                 taskDateKey = startOfDayKey(task.due_at)
@@ -68,13 +107,14 @@ export default async function DashboardPage(props: { searchParams: { error?: str
                 taskDateKey = task.due_date
             }
             
-            if (!taskDateKey) return false
+            // If no due date, include it (will be grouped under "No date")
+            if (!taskDateKey) return true
             
             // Due date must be today or later
             return taskDateKey >= todayKey
         })
 
-        // Group tasks by date
+        // Group tasks by date (including "No date" group)
         const groupsMap = new Map<string, typeof upcomingTasks>()
         for (const task of upcomingTasks) {
             let dateKey: string
@@ -83,7 +123,8 @@ export default async function DashboardPage(props: { searchParams: { error?: str
             } else if (task.due_date) {
                 dateKey = task.due_date
             } else {
-                continue
+                // No due date - group under "No date"
+                dateKey = '__no_date__'
             }
             
             if (!groupsMap.has(dateKey)) {
@@ -96,7 +137,7 @@ export default async function DashboardPage(props: { searchParams: { error?: str
         const taskGroups = Array.from(groupsMap.entries())
             .map(([key, tasks]) => ({
                 key,
-                label: dayLabel(key),
+                label: key === '__no_date__' ? 'No date' : dayLabel(key),
                 tasks: tasks.sort((a, b) => {
                     // Sort by time if available, else by title
                     const timeA = a.due_at ? new Date(a.due_at).getTime() : 0
@@ -105,7 +146,12 @@ export default async function DashboardPage(props: { searchParams: { error?: str
                     return a.title.localeCompare(b.title)
                 })
             }))
-            .sort((a, b) => a.key.localeCompare(b.key)) // Sort groups by date
+            .sort((a, b) => {
+                // "No date" group goes last
+                if (a.key === '__no_date__') return 1
+                if (b.key === '__no_date__') return -1
+                return a.key.localeCompare(b.key)
+            })
 
         // Get completed tasks sorted by updated_at (when they were completed) or created_at desc
         const completedTasks = (allTasks || [])

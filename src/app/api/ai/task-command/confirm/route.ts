@@ -5,6 +5,7 @@ import { executeActions } from '@/lib/ai-command/executor'
 import { getPendingActions } from '@/lib/ai/confirmTokenStore'
 import { revalidatePath } from 'next/cache'
 import { randomUUID } from 'crypto'
+import { cookies } from 'next/headers'
 
 /**
  * POST /api/ai/task-command/confirm
@@ -17,8 +18,13 @@ export async function POST(request: NextRequest) {
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         
-        if (authError || !user) {
-            console.error(`[${requestId}] Auth failed:`, authError?.message || 'No user')
+        // Get guest_id from cookie if no authenticated user
+        const cookieStore = await cookies()
+        const guestId = cookieStore.get('guest_id')?.value
+        
+        // STRICT IDENTITY CHECK - must have user OR guest_id
+        if ((authError || !user) && !guestId) {
+            console.error(`[${requestId}] Auth failed:`, authError?.message || 'No user or guest_id')
             return NextResponse.json(
                 { 
                     ok: false,
@@ -29,7 +35,21 @@ export async function POST(request: NextRequest) {
             )
         }
         
-        console.log(`[${requestId}] User authenticated:`, user.id)
+        const identityId = user?.id || guestId
+        const isGuest = !user && !!guestId
+        
+        if (!identityId) {
+            return NextResponse.json(
+                { 
+                    ok: false,
+                    error: 'No identity found',
+                    requestId 
+                },
+                { status: 401 }
+            )
+        }
+        
+        console.log(`[${requestId}] Identity:`, isGuest ? `guest ${identityId}` : `user ${identityId}`)
         
         const body = await request.json()
         const { confirmToken } = body
@@ -41,8 +61,8 @@ export async function POST(request: NextRequest) {
             )
         }
         
-        // Look up pending actions
-        const pendingData = getPendingActions(confirmToken, user.id)
+        // Look up pending actions (use identityId)
+        const pendingData = getPendingActions(confirmToken, identityId)
         
         if (!pendingData) {
             return NextResponse.json(
@@ -66,7 +86,7 @@ export async function POST(request: NextRequest) {
         
         // Execute actions
         console.log(`[${requestId}] Executing ${validatedActions.length} confirmed actions`)
-        const result = await executeActions(user.id, validatedActions)
+        const result = await executeActions(user?.id || null, validatedActions, guestId || null)
         
         // Log each action result
         for (const actionResult of result.results) {

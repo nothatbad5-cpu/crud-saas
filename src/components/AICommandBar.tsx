@@ -59,15 +59,18 @@ export default function AICommandBar({ onSuccess }: AICommandBarProps) {
                 const actuallySucceeded = hasCreated || hasUpdated || hasDeleted
                 
                 if (actuallySucceeded) {
-                    // Build success message with actual task info
+                    // Build success message with actual task info and debug
                     let successMsg = data.resultMessage || 'Command executed successfully'
                     if (hasCreated) {
-                        successMsg = `Created task: "${data.created[0].title}" (ID: ${data.created[0].id.substring(0, 8)}...)`
+                        const createdRow = data.created[0]
+                        successMsg = `Created task: "${createdRow.title}" (ID: ${createdRow.id.substring(0, 8)}...)`
+                        // Debug: show full created row info
+                        console.log('[AI] Created task:', createdRow)
                     }
                     
                     setExecutionResult({
                         success: true,
-                        message: successMsg + (data.requestId ? ` [${data.requestId.substring(0, 8)}...]` : ''),
+                        message: successMsg + (data.requestId ? ` [req:${data.requestId.substring(0, 8)}...]` : ''),
                     })
                     // Clear input and refresh
                     setInput('')
