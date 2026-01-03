@@ -25,7 +25,8 @@ export function extractDueDate(input: string): ExtractedDate {
     const referenceDate = new Date()
     
     // Parse with chrono, passing reference date
-    const results = chrono.parse(input, referenceDate, { forwardDate: true })
+    // Note: chrono-node automatically uses forwardDate behavior when reference date is provided
+    const results = chrono.parse(input, referenceDate)
     
     if (results.length === 0) {
         // No date found
