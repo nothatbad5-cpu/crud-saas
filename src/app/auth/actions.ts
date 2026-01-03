@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 
 function isRedirectError(error: any) {
@@ -86,7 +87,20 @@ export async function signup(formData: FormData) {
             return
         }
 
-        const { data: authData, error } = await supabase.auth.signUp(data)
+        // Get origin for email redirect callback
+        // Works in both localhost and production
+        const headersList = await headers()
+        const host = headersList.get('host') || 'localhost:3000'
+        const protocol = host.includes('localhost') ? 'http' : 'https'
+        const origin = `${protocol}://${host}`
+        const emailRedirectTo = `${origin}/auth/callback`
+
+        const { data: authData, error } = await supabase.auth.signUp({
+            ...data,
+            options: {
+                emailRedirectTo,
+            },
+        })
 
         if (error) {
             // Provide more specific error messages
