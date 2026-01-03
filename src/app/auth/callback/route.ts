@@ -15,14 +15,17 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const next = searchParams.get('next') || '/dashboard'
 
   if (code) {
     const supabase = await createClient()
+    // CRITICAL: exchangeCodeForSession sets session cookies automatically via SSR helpers
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (error) {
       return NextResponse.redirect(`${origin}/login?error=` + encodeURIComponent(error.message))
     }
-    return NextResponse.redirect(`${origin}/dashboard`)
+    // Success: user is now authenticated, redirect to dashboard or next URL
+    return NextResponse.redirect(`${origin}${next}`)
   }
 
   return NextResponse.redirect(`${origin}/login`)

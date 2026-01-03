@@ -29,6 +29,36 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Supabase Configuration
+
+### Email Confirmation Setup
+
+For email confirmation to work correctly, configure your Supabase project:
+
+1. **Go to Supabase Dashboard** → Your Project → Authentication → URL Configuration
+
+2. **Set Site URL:**
+   - Production: `https://crud-saas-three.vercel.app`
+   - Development: `http://localhost:3000`
+
+3. **Add Redirect URLs:**
+   - `https://crud-saas-three.vercel.app/auth/callback`
+   - `http://localhost:3000/auth/callback`
+
+4. **Email Templates:**
+   - The confirmation email will automatically include the callback URL
+   - Users clicking the link will be automatically logged in and redirected to `/dashboard`
+
+### Environment Variables
+
+Create a `.env.local` file with:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

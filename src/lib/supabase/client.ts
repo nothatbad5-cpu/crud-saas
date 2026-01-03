@@ -12,5 +12,11 @@ export function createClient() {
         )
     }
 
-    return createBrowserClient<Database>(url, key)
+    return createBrowserClient<Database>(url, key, {
+        auth: {
+            persistSession: true, // Explicitly enable session persistence
+            autoRefreshToken: true, // Automatically refresh tokens
+            detectSessionInUrl: true, // Detect session in URL (for OAuth flows)
+        },
+    })
 }

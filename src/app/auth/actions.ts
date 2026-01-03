@@ -27,11 +27,15 @@ export async function login(formData: FormData) {
 
         if (error) {
             // Provide more specific error messages
-            const errorMessage = error.message.includes('Invalid login')
-                ? 'Invalid email or password'
-                : error.message.includes('Email not confirmed')
-                    ? 'Please verify your email before signing in'
-                    : error.message || 'Could not authenticate user'
+            let errorMessage: string
+            if (error.message.includes('Invalid login')) {
+                errorMessage = 'Invalid email or password'
+            } else if (error.message.includes('Email not confirmed') || error.message.includes('not confirmed')) {
+                // Include email in error for resend functionality
+                errorMessage = `Please verify your email. Check inbox/spam. Email: ${data.email}`
+            } else {
+                errorMessage = error.message || 'Could not authenticate user'
+            }
             redirect('/login?error=' + encodeURIComponent(errorMessage))
             return
         }
@@ -93,7 +97,8 @@ export async function signup(formData: FormData) {
         const host = headersList.get('host') || 'localhost:3000'
         const protocol = host.includes('localhost') ? 'http' : 'https'
         const origin = `${protocol}://${host}`
-        const emailRedirectTo = `${origin}/auth/callback`
+        // Include next parameter to redirect to dashboard after confirmation
+        const emailRedirectTo = `${origin}/auth/callback?next=/dashboard`
 
         const { data: authData, error } = await supabase.auth.signUp({
             email: data.email,
