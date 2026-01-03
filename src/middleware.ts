@@ -42,6 +42,10 @@ export async function middleware(request: NextRequest) {
         }
     )
 
+    // CRITICAL: Refresh session on every request to ensure auth state is consistent
+    // This prevents "half logged-in" states where client has session but server doesn't
+    await supabase.auth.getSession()
+
     const {
         data: { user },
     } = await supabase.auth.getUser()

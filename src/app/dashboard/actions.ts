@@ -35,11 +35,13 @@ export async function createTask(formData: FormData) {
     try {
         const supabase = await createClient()
 
+        // CRITICAL: Verify auth before proceeding
         const { data: { user }, error: authError } = await supabase.auth.getUser()
 
         // STRICT AUTH: Must have authenticated user
         if (authError || !user) {
             redirect('/login')
+            return
         }
 
         // Phase 3: Check usage limits (Pro users bypass this in canCreateTask logic)
@@ -54,14 +56,9 @@ export async function createTask(formData: FormData) {
 
         if (!allowed) {
             // If not allowed, it means limit reached.
-            // But we also need to check if they are "Gated".
-            // The previous logic was: "If not subscribed, redirect to pricing".
-            // Phase 3 requirements say: Free users can create up to 5 tasks.
-            // So we ONLY block if they are Free AND over limit.
-
-            // If reason is limit reached, redirect with error
-            redirect(`/dashboard?error=${encodeURIComponent(reason ?? 'Limit reached')}`)
-            return
+            // Return error to be displayed on the form page instead of redirecting
+            // This prevents the error query param loop
+            throw new Error(reason ?? 'Task limit reached. Please upgrade to Pro for unlimited tasks.')
         }
 
         // Get due_date and optional time from form
@@ -76,9 +73,14 @@ export async function createTask(formData: FormData) {
         // Always set due_date = due_at::date for backwards compatibility
         const due_date = due_at ? extractDateFromDueAt(due_at) : due_date_input
 
+        const title = formData.get('title') as string
+        if (!title || !title.trim()) {
+            throw new Error('Task title is required')
+        }
+
         const { error } = await supabase.from('tasks').insert({
-            title: formData.get('title') as string,
-            description: formData.get('description') as string,
+            title: title.trim(),
+            description: (formData.get('description') as string) || null,
             status: (formData.get('status') as 'pending' | 'completed') || 'pending',
             due_date, // Always set from due_at for compatibility
             due_at,   // Primary field
@@ -86,17 +88,28 @@ export async function createTask(formData: FormData) {
         })
 
         if (error) {
-            // Redirect to dashboard with error, not back to create page
-            redirect(`/dashboard?error=${encodeURIComponent(error.message || 'Could not create task')}`)
+            // Return structured error instead of redirecting
+            // This allows the form page to display the error inline
+            throw new Error(error.message || 'Could not create task. Please try again.')
         }
 
+        // CRITICAL: Revalidate before redirect to ensure new task appears
         revalidatePath('/dashboard')
+        
         // Always redirect to dashboard on success
         redirect('/dashboard')
-    } catch (error) {
+    } catch (error: any) {
+        // Check if it's a redirect error (from redirect() call)
+        if (error?.digest?.startsWith('NEXT_REDIRECT')) {
+            throw error // Re-throw redirect errors
+        }
+        
         console.error('Error in createTask:', error)
-        // Redirect to dashboard with error, not back to create page
-        redirect(`/dashboard?error=${encodeURIComponent('An unexpected error occurred. Please try again.')}`)
+        
+        // Return error to be displayed on the form page
+        // This prevents the error query param loop pattern
+        // The form page will catch this and display it inline
+        throw new Error(error?.message || 'An unexpected error occurred. Please try again.')
     }
 }
 

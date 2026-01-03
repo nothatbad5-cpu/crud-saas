@@ -3,8 +3,8 @@ import { login } from '@/app/auth/actions'
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
-export default async function LoginPage(props: { searchParams: { error?: string } }) {
-    const searchParams = props.searchParams
+export default async function LoginPage(props: { searchParams: Promise<{ error?: string }> }) {
+    const searchParams = await props.searchParams
     return (
         <div className="flex min-h-[100svh] items-start sm:items-center justify-center bg-[#0b0b0b] px-4 pt-8 pb-12">
             <div className="w-full max-w-md space-y-8 p-4 sm:p-6 bg-[#111] border border-[#262626] rounded-xl">

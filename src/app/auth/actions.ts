@@ -22,7 +22,7 @@ export async function login(formData: FormData) {
             return
         }
 
-        const { error } = await supabase.auth.signInWithPassword(data)
+        const { data: authData, error } = await supabase.auth.signInWithPassword(data)
 
         if (error) {
             // Provide more specific error messages
@@ -32,6 +32,15 @@ export async function login(formData: FormData) {
                     ? 'Please verify your email before signing in'
                     : error.message || 'Could not authenticate user'
             redirect('/login?error=' + encodeURIComponent(errorMessage))
+            return
+        }
+
+        // CRITICAL: Verify session exists after login
+        // Refresh session to ensure it's available server-side
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session) {
+            redirect('/login?error=' + encodeURIComponent('Session not created. Please try again.'))
             return
         }
 
@@ -77,7 +86,7 @@ export async function signup(formData: FormData) {
             return
         }
 
-        const { error } = await supabase.auth.signUp(data)
+        const { data: authData, error } = await supabase.auth.signUp(data)
 
         if (error) {
             // Provide more specific error messages
@@ -87,6 +96,26 @@ export async function signup(formData: FormData) {
                     ? 'Password does not meet requirements'
                     : error.message || 'Could not create user'
             redirect('/signup?error=' + encodeURIComponent(errorMessage))
+            return
+        }
+
+        // CRITICAL: Handle email confirmation requirement
+        // If email confirmation is required, user.session will be null
+        // If email confirmation is disabled, user.session will exist immediately
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session) {
+            // Email confirmation required - show message instead of redirecting
+            // User needs to check email and confirm before they can log in
+            redirect('/signup?message=' + encodeURIComponent('Please check your email to confirm your account before signing in.'))
+            return
+        }
+
+        // Session exists - user is immediately authenticated
+        // Verify user exists
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+            redirect('/signup?error=' + encodeURIComponent('Account created but authentication failed. Please try logging in.'))
             return
         }
 
