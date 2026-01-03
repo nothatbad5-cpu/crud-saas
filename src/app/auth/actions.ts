@@ -96,19 +96,32 @@ export async function signup(formData: FormData) {
         const emailRedirectTo = `${origin}/auth/callback`
 
         const { data: authData, error } = await supabase.auth.signUp({
-            ...data,
+            email: data.email,
+            password: data.password,
             options: {
                 emailRedirectTo,
             },
         })
 
         if (error) {
-            // Provide more specific error messages
-            const errorMessage = error.message.includes('already registered')
-                ? 'An account with this email already exists'
-                : error.message.includes('Password')
-                    ? 'Password does not meet requirements'
-                    : error.message || 'Could not create user'
+            // CRITICAL: Handle rate-limit errors explicitly
+            // Supabase rate-limits signup requests to prevent abuse
+            const isRateLimitError = error.message.includes('security purposes') || 
+                                     error.message.includes('after') ||
+                                     error.message.toLowerCase().includes('rate limit') ||
+                                     error.message.toLowerCase().includes('too many')
+            
+            let errorMessage: string
+            if (isRateLimitError) {
+                errorMessage = 'Please wait a minute before requesting another confirmation email.'
+            } else if (error.message.includes('already registered')) {
+                errorMessage = 'An account with this email already exists'
+            } else if (error.message.includes('Password')) {
+                errorMessage = 'Password does not meet requirements'
+            } else {
+                errorMessage = error.message || 'Could not create user'
+            }
+            
             redirect('/signup?error=' + encodeURIComponent(errorMessage))
             return
         }
@@ -119,9 +132,10 @@ export async function signup(formData: FormData) {
         const { data: { session } } = await supabase.auth.getSession()
         
         if (!session) {
-            // Email confirmation required - show message instead of redirecting
-            // User needs to check email and confirm before they can log in
-            redirect('/signup?message=' + encodeURIComponent('Please check your email to confirm your account before signing in.'))
+            // Email confirmation required - show success message
+            // CRITICAL: Do NOT retry signup, do NOT redirect to dashboard
+            // User must click email link to confirm and get session
+            redirect('/signup?message=' + encodeURIComponent('Check your email to confirm your account.'))
             return
         }
 
